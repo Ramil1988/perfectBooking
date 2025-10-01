@@ -128,11 +128,11 @@ function BookingForm({ user }) {
             />
           </div>
 
-          {formData.appointment_date && availableSlots.length > 0 && (
+          {formData.appointment_date && (availableSlots?.length || 0) > 0 && (
             <div className="form-group">
               <label>Available Time Slots</label>
               <div className="time-slots">
-                {availableSlots.map(slot => (
+                {(availableSlots || []).map(slot => (
                   <div
                     key={slot}
                     className={`time-slot ${formData.appointment_time === slot ? 'selected' : ''}`}
@@ -145,7 +145,7 @@ function BookingForm({ user }) {
             </div>
           )}
 
-          {formData.appointment_date && availableSlots.length === 0 && (
+          {formData.appointment_date && (availableSlots?.length || 0) === 0 && (
             <div className="alert alert-error">
               No available time slots for this date. Please choose another date.
             </div>

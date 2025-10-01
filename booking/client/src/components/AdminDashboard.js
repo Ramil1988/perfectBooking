@@ -141,39 +141,40 @@ function AdminDashboard({ user }) {
 
   // Reset duration if current duration is no longer valid when validDurations changes
   useEffect(() => {
-    if (validDurations.length > 0 && newBooking.duration && !validDurations.includes(newBooking.duration)) {
+    if ((validDurations?.length || 0) > 0 && newBooking.duration && !validDurations.includes(newBooking.duration)) {
       const firstValidDuration = validDurations[0] || (businessConfig?.defaultDuration || 60);
       setNewBooking(prev => ({...prev, duration: firstValidDuration}));
     }
   }, [validDurations, newBooking.duration, businessConfig]);
 
   const getAnalytics = () => {
-    const total = bookings.length;
-    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
-    const cancelled = bookings.filter(b => b.status === 'cancelled').length;
-    
+    const safeBookings = bookings || [];
+    const total = safeBookings.length;
+    const confirmed = safeBookings.filter(b => b.status === 'confirmed').length;
+    const cancelled = safeBookings.filter(b => b.status === 'cancelled').length;
+
     // Calculate revenue based on business config
-    const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
+    const confirmedBookings = safeBookings.filter(b => b.status === 'confirmed');
     const totalRevenue = confirmedBookings.reduce((sum, booking) => {
       const hourlyRate = businessConfig?.pricePerHour || 0;
       return sum + (hourlyRate * (booking.duration / 60));
     }, 0);
 
-    const upcomingBookings = bookings.filter(b => {
+    const upcomingBookings = safeBookings.filter(b => {
       const bookingDate = new Date(b.appointment_date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return bookingDate >= today && b.status === 'confirmed';
     });
 
-    const todayBookings = bookings.filter(b => {
+    const todayBookings = safeBookings.filter(b => {
       const today = new Date().toISOString().split('T')[0];
       return b.appointment_date === today && b.status === 'confirmed';
     });
 
     // Service popularity
     const serviceStats = {};
-    bookings.forEach(booking => {
+    safeBookings.forEach(booking => {
       serviceStats[booking.service_name] = (serviceStats[booking.service_name] || 0) + 1;
     });
 
@@ -181,8 +182,8 @@ function AdminDashboard({ user }) {
     const staffStats = {};
     const staffHours = {};
     const staffNames = {}; // Store actual names for display
-    
-    bookings.forEach(booking => {
+
+    safeBookings.forEach(booking => {
       const duration = booking.duration || 60; // default to 60 minutes if not specified
       const hours = duration / 60; // convert minutes to hours
       
@@ -217,7 +218,7 @@ function AdminDashboard({ user }) {
     };
   };
 
-  const filteredBookings = bookings
+  const filteredBookings = (bookings || [])
     .filter(booking => {
       if (businessFilter && booking.business_type !== businessFilter) return false;
       if (statusFilter && booking.status !== statusFilter) return false;
@@ -227,19 +228,19 @@ function AdminDashboard({ user }) {
       const now = new Date();
       const dateTimeA = new Date(`${a.appointment_date}T${a.appointment_time}`);
       const dateTimeB = new Date(`${b.appointment_date}T${b.appointment_time}`);
-      
+
       const aIsFuture = dateTimeA > now;
       const bIsFuture = dateTimeB > now;
-      
+
       // Future appointments first, sorted by earliest first
       if (aIsFuture && bIsFuture) {
         return dateTimeA - dateTimeB;
       }
-      
+
       // If one is future and one is past, future comes first
       if (aIsFuture && !bIsFuture) return -1;
       if (!aIsFuture && bIsFuture) return 1;
-      
+
       // Both are past, sort by most recent first
       return dateTimeB - dateTimeA;
     });
@@ -397,7 +398,7 @@ function AdminDashboard({ user }) {
   const handleStatusUpdate = async (bookingId, status) => {
     try {
       await axios.put(`/api/bookings/${bookingId}`, { status });
-      setBookings(bookings.map(booking =>
+      setBookings((bookings || []).map(booking =>
         booking.id === bookingId
           ? { ...booking, status }
           : booking
@@ -418,7 +419,7 @@ function AdminDashboard({ user }) {
 
     try {
       await axios.delete(`/api/bookings/${bookingId}`);
-      setBookings(bookings.filter(booking => booking.id !== bookingId));
+      setBookings((bookings || []).filter(booking => booking.id !== bookingId));
       setSuccess('Booking deleted successfully');
       // Refresh calendar to reflect deletion
       setCalendarRefreshKey(prev => prev + 1);
@@ -531,7 +532,7 @@ function AdminDashboard({ user }) {
       };
       
       const response = await axios.put(`/api/specialists/${editingSpecialist.id}`, specialistData);
-      setSpecialists(specialists.map(s => s.id === editingSpecialist.id ? response.data.specialist : s));
+      setSpecialists((specialists || []).map(s => s.id === editingSpecialist.id ? response.data.specialist : s));
       setSuccess('Specialist updated successfully');
       setEditingSpecialist(null);
       setTimeout(() => setSuccess(''), 3000);
@@ -549,7 +550,7 @@ function AdminDashboard({ user }) {
 
     try {
       await axios.delete(`/api/specialists/${specialistId}`);
-      setSpecialists(specialists.filter(s => s.id !== specialistId));
+      setSpecialists((specialists || []).filter(s => s.id !== specialistId));
       setSuccess('Specialist deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -634,13 +635,13 @@ function AdminDashboard({ user }) {
       
       // Check if we got the updated service back
       if (response.data.service) {
-        setServices(services.map(s => s.id === editingService.id ? response.data.service : s));
+        setServices((services || []).map(s => s.id === editingService.id ? response.data.service : s));
       } else {
         // Fallback: refetch all services to ensure we have the updated data
         const servicesResponse = await axios.get(`/api/services?business_type=${businessConfig?.id || 'general'}`);
         setServices(servicesResponse.data.services);
       }
-      
+
       setSuccess('Service updated successfully');
       setEditingService(null);
       setTimeout(() => setSuccess(''), 3000);
@@ -658,7 +659,7 @@ function AdminDashboard({ user }) {
 
     try {
       await axios.delete(`/api/services/${serviceId}`);
-      setServices(services.filter(s => s.id !== serviceId));
+      setServices((services || []).filter(s => s.id !== serviceId));
       setSuccess('Service deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -771,7 +772,7 @@ function AdminDashboard({ user }) {
     }
     try {
       await axios.delete(`/api/users/${userId}`);
-      setUsers(users.filter(u => u.id !== userId));
+      setUsers((users || []).filter(u => u.id !== userId));
       setSuccess('User deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -792,7 +793,7 @@ function AdminDashboard({ user }) {
           phone: newCustomer.phone,
           role: editingUser.role
         });
-        setUsers(users.map(u => u.id === editingUser.id ? {
+        setUsers((users || []).map(u => u.id === editingUser.id ? {
           ...u,
           name: newCustomer.name,
           email: newCustomer.email,
@@ -805,7 +806,7 @@ function AdminDashboard({ user }) {
           ...newCustomer,
           role: 'customer'
         });
-        setUsers([response.data.user, ...users]);
+        setUsers([response.data.user, ...(users || [])]);
         setSuccess('Customer created successfully');
       }
       
@@ -854,7 +855,7 @@ function AdminDashboard({ user }) {
     return new Date().toISOString().split('T')[0];
   };
 
-  if (loading && bookings.length === 0) {
+  if (loading && (bookings?.length || 0) === 0) {
     return <div>Loading dashboard...</div>;
   }
 
@@ -902,21 +903,21 @@ function AdminDashboard({ user }) {
           className={`btn ${activeTab === 'bookings' ? '' : 'btn-secondary'}`}
           style={{ marginRight: '10px' }}
         >
-          📋 Bookings ({bookings.length})
+          📋 Bookings ({bookings?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('users')}
           className={`btn ${activeTab === 'users' ? '' : 'btn-secondary'}`}
           style={{ marginRight: '10px' }}
         >
-          👥 Users ({users.length})
+          👥 Users ({users?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('specialists')}
           className={`btn ${activeTab === 'specialists' ? '' : 'btn-secondary'}`}
           style={{ marginRight: '10px' }}
         >
-          {businessConfig?.id === 'massage' ? '💆‍♀️' : businessConfig?.id === 'dental' ? '👨‍⚕️' : '👔'} Specialists ({specialists.length})
+          {businessConfig?.id === 'massage' ? '💆‍♀️' : businessConfig?.id === 'dental' ? '👨‍⚕️' : '👔'} Specialists ({specialists?.length || 0})
         </button>
         <button
           onClick={() => setActiveTab('services')}
@@ -1164,12 +1165,12 @@ function AdminDashboard({ user }) {
               </button>
             </div>
             <div style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
-              Showing {filteredBookings.length} of {bookings.length} bookings
+              Showing {filteredBookings?.length || 0} of {bookings?.length || 0} bookings
             </div>
           </div>
 
           <div className="card">
-            {filteredBookings.length === 0 ? (
+            {(filteredBookings?.length || 0) === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <p style={{ color: '#666' }}>
                   {selectedDate || businessFilter || statusFilter ? 'No bookings match your filters.' : 'No bookings yet.'}
@@ -1331,9 +1332,9 @@ function AdminDashboard({ user }) {
               Create New Customer
             </button>
           </div>
-          
+
           <div className="card">
-            {users.length === 0 ? (
+            {(users?.length || 0) === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <p style={{ color: '#666' }}>No users found.</p>
               </div>
@@ -1351,7 +1352,7 @@ function AdminDashboard({ user }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(user => (
+                    {(users || []).map(user => (
                       <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
                         <td style={{ padding: '10px' }}>{user.name}</td>
                         <td style={{ padding: '10px' }}>{user.email}</td>
@@ -1413,9 +1414,9 @@ function AdminDashboard({ user }) {
               Add New {businessConfig?.id === 'massage' ? 'Therapist' : businessConfig?.id === 'dental' ? 'Doctor' : 'Specialist'}
             </button>
           </div>
-          
+
           <div className="card">
-            {specialists.length === 0 ? (
+            {(specialists?.length || 0) === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
                 <p style={{ color: '#666' }}>No specialists found.</p>
               </div>
@@ -1432,7 +1433,7 @@ function AdminDashboard({ user }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {specialists.map(specialist => (
+                    {(specialists || []).map(specialist => (
                       <tr key={specialist.id} style={{ borderBottom: '1px solid #eee' }}>
                         <td style={{ padding: '10px' }}>
                           <strong>{specialist.name}</strong>
@@ -1509,7 +1510,7 @@ function AdminDashboard({ user }) {
                   required
                 >
                   <option value="">Select a customer</option>
-                  {users.filter(u => u.role === 'customer').map(user => (
+                  {(users || []).filter(u => u.role === 'customer').map(user => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.email})
                     </option>
@@ -1543,7 +1544,7 @@ function AdminDashboard({ user }) {
                   required
                 >
                   <option value="">Select a {businessConfig?.id === 'massage' ? 'therapist' : businessConfig?.id === 'dental' ? 'doctor' : 'specialist'}</option>
-                  {specialists.map(specialist => (
+                  {(specialists || []).map(specialist => (
                     <option key={specialist.id} value={specialist.id}>
                       {specialist.name} - {specialist.specialty}
                     </option>
@@ -1579,13 +1580,13 @@ function AdminDashboard({ user }) {
                       ? 'Select specialist and date first' 
                       : 'Select an available time'}
                   </option>
-                  {availableSlots.map(slot => (
+                  {(availableSlots || []).map(slot => (
                     <option key={slot.time} value={slot.time} disabled={!slot.available}>
                       {formatTime(slot.time)} {!slot.available ? '(Booked)' : ''}
                     </option>
                   ))}
                 </select>
-                {selectedSpecialist && newBooking.appointment_date && availableSlots.length > 0 && (
+                {selectedSpecialist && newBooking.appointment_date && (availableSlots?.length || 0) > 0 && (
                   <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
                     Booked slots are shown but disabled
                   </div>
@@ -1600,13 +1601,13 @@ function AdminDashboard({ user }) {
                   value={newBooking.duration}
                   onChange={(e) => handleDurationChange(e.target.value)}
                 >
-                  {(validDurations.length > 0 ? validDurations : (businessConfig?.durations || [30, 60, 90, 120])).map(duration => (
+                  {((validDurations?.length || 0) > 0 ? validDurations : (businessConfig?.durations || [30, 60, 90, 120])).map(duration => (
                     <option key={duration} value={duration}>
                       {duration} minutes
                     </option>
                   ))}
                 </select>
-                {newBooking.appointment_time && validDurations.length < (businessConfig?.durations || []).length && (
+                {newBooking.appointment_time && (validDurations?.length || 0) < ((businessConfig?.durations || []).length) && (
                   <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
                     Some durations unavailable due to working hours constraints
                   </small>
@@ -1994,7 +1995,7 @@ function AdminDashboard({ user }) {
             ))}
           </div>
 
-          {services.length === 0 && (
+          {(services?.length || 0) === 0 && (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               No services found. Add your first service to get started.
             </div>

@@ -478,10 +478,10 @@ function CalendarView({ user }) {
           {/* Time Grid */}
           {(() => {
             // Get providers first to calculate grid columns - use only available providers
-            const providers = availableProviders;
-            
+            const providers = availableProviders || [];
+
             // If no providers have availability, show a message
-            if (providers.length === 0) {
+            if ((providers?.length || 0) === 0) {
               return (
                 <div style={{
                   padding: '40px',

@@ -375,9 +375,9 @@ function SuperAdminDashboard({ user }) {
                   </td>
                   <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>
                     {user.role === 'admin' ? (
-                      user.business_access && user.business_access.length > 0 ? (
+                      user.business_access && (user.business_access?.length || 0) > 0 ? (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                          {user.business_access.map((access, index) => (
+                          {(user.business_access || []).map((access, index) => (
                             <span
                               key={index}
                               style={{
@@ -625,8 +625,8 @@ function SuperAdminDashboard({ user }) {
 
                 <div style={{ marginTop: '20px' }}>
                   <h4>Current Access:</h4>
-                  {selectedUser.business_access && selectedUser.business_access.length > 0 ? (
-                    selectedUser.business_access.map((access, index) => (
+                  {selectedUser.business_access && (selectedUser.business_access?.length || 0) > 0 ? (
+                    (selectedUser.business_access || []).map((access, index) => (
                       <div key={index} style={{
                         padding: '10px',
                         background: '#f8fafc',
@@ -729,10 +729,10 @@ function SuperAdminDashboard({ user }) {
                 <div style={{ marginTop: '20px' }}>
                   <h4>Grant New Access:</h4>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {platformConfig.filter(config => {
+                    {(platformConfig || []).filter(config => {
                       // Check both business_access (API) and businessAccess (localStorage)
-                      if (selectedUser.business_access && selectedUser.business_access.length > 0) {
-                        return !selectedUser.business_access.some(access => access.business_type === config.business_type);
+                      if (selectedUser.business_access && (selectedUser.business_access?.length || 0) > 0) {
+                        return !(selectedUser.business_access || []).some(access => access.business_type === config.business_type);
                       }
                       if (selectedUser.businessAccess) {
                         return selectedUser.businessAccess.businessType !== config.business_type;

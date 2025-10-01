@@ -31,8 +31,8 @@ function CustomerDashboard({ user }) {
 
     try {
       await axios.put(`/api/bookings/${bookingId}`, { status: 'cancelled' });
-      setBookings(bookings.map(booking => 
-        booking.id === bookingId 
+      setBookings((bookings || []).map(booking =>
+        booking.id === bookingId
           ? { ...booking, status: 'cancelled' }
           : booking
       ));
@@ -46,13 +46,13 @@ function CustomerDashboard({ user }) {
   };
 
   const handleBookingUpdated = (updatedBooking) => {
-    setBookings(bookings.map(booking => 
+    setBookings((bookings || []).map(booking =>
       booking.id === updatedBooking.id ? updatedBooking : booking
     ));
   };
 
   const handleBookingDeleted = (bookingId) => {
-    setBookings(bookings.filter(booking => booking.id !== bookingId));
+    setBookings((bookings || []).filter(booking => booking.id !== bookingId));
   };
 
 
@@ -93,7 +93,7 @@ function CustomerDashboard({ user }) {
       )}
 
       <div className="card">
-        {bookings.length === 0 ? (
+        {(bookings?.length || 0) === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
             <p style={{ marginBottom: '20px', color: '#666' }}>
               You don't have any appointments yet.
@@ -104,7 +104,7 @@ function CustomerDashboard({ user }) {
           </div>
         ) : (
           <div>
-            {bookings.map(booking => (
+            {(bookings || []).map(booking => (
               <div key={booking.id} className="booking-item">
                 <div className="booking-header">
                   <div>
