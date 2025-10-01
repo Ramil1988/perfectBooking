@@ -441,6 +441,8 @@ For complete documentation, see [LOCAL_STORAGE_MODE.md](LOCAL_STORAGE_MODE.md)
 
 > **Note**: Each user has their own isolated data in their browser. Data is not shared between users or devices. Perfect for testing and demonstrations!
 
+**📖 Want to deploy your own?** See the complete **[Netlify Deployment Guide](NETLIFY_DEPLOYMENT.md)** for step-by-step instructions!
+
 ### Deploy Your Own (Static - LocalStorage Mode)
 
 Perfect for Netlify, Vercel, GitHub Pages:
