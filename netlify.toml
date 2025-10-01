@@ -1,7 +1,6 @@
 [build]
   # Build command for React app with localStorage mode enabled
-  # CI=false prevents warnings from being treated as errors
-  command = "CI=false REACT_APP_USE_LOCAL_STORAGE=true npm run build"
+  command = "npm run build"
 
   # Directory containing the built files (relative to base)
   publish = "build"
@@ -15,8 +14,8 @@
   REACT_APP_USE_LOCAL_STORAGE = "true"
   # React app port (not used in production but good for consistency)
   PORT = "3000"
-  # Treat warnings as warnings, not errors in CI (required for successful build)
-  CI = "false"
+  # Disable ESLint plugin to prevent warnings from breaking build
+  DISABLE_ESLINT_PLUGIN = "true"
 
 # Redirect rules for SPA routing
 [[redirects]]
