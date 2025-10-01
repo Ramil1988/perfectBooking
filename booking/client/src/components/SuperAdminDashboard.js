@@ -375,7 +375,7 @@ function SuperAdminDashboard({ user }) {
                   </td>
                   <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>
                     {user.role === 'admin' ? (
-                      user.business_access.length > 0 ? (
+                      user.business_access && user.business_access.length > 0 ? (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                           {user.business_access.map((access, index) => (
                             <span
@@ -391,6 +391,20 @@ function SuperAdminDashboard({ user }) {
                               {access.business_type} ({access.subscription_status})
                             </span>
                           ))}
+                        </div>
+                      ) : user.businessAccess ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          <span
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              background: user.businessAccess.subscriptionStatus === 'active' ? '#dcfce7' : '#fef3c7',
+                              color: user.businessAccess.subscriptionStatus === 'active' ? '#166534' : '#92400e'
+                            }}
+                          >
+                            {user.businessAccess.businessType} ({user.businessAccess.subscriptionStatus})
+                          </span>
                         </div>
                       ) : (
                         <span style={{ color: '#64748b', fontStyle: 'italic' }}>No access</span>
@@ -608,30 +622,30 @@ function SuperAdminDashboard({ user }) {
             {selectedUser ? (
               <div>
                 <p><strong>User:</strong> {selectedUser.name} ({selectedUser.email})</p>
-                
+
                 <div style={{ marginTop: '20px' }}>
                   <h4>Current Access:</h4>
-                  {selectedUser.business_access.length > 0 ? (
+                  {selectedUser.business_access && selectedUser.business_access.length > 0 ? (
                     selectedUser.business_access.map((access, index) => (
-                      <div key={index} style={{ 
-                        padding: '10px', 
-                        background: '#f8fafc', 
-                        borderRadius: '8px', 
+                      <div key={index} style={{
+                        padding: '10px',
+                        background: '#f8fafc',
+                        borderRadius: '8px',
                         marginBottom: '10px',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center'
                       }}>
                         <div>
-                          <strong>{access.business_type}</strong> - {access.subscription_status} 
+                          <strong>{access.business_type}</strong> - {access.subscription_status}
                           (${platformConfig.find(config => config.business_type === access.business_type)?.monthly_price || access.monthly_price}/month)
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <select 
+                          <select
                             value={access.subscription_status}
                             onChange={(e) => updateSubscription(
-                              selectedUser.id, 
-                              access.business_type, 
+                              selectedUser.id,
+                              access.business_type,
                               e.target.value,
                               access.monthly_price,
                               30
@@ -643,14 +657,14 @@ function SuperAdminDashboard({ user }) {
                             <option value="suspended">Suspended</option>
                             <option value="cancelled">Cancelled</option>
                           </select>
-                          <button 
+                          <button
                             onClick={() => revokeAccess(selectedUser.id, access.business_type)}
-                            style={{ 
-                              padding: '4px 8px', 
-                              fontSize: '12px', 
-                              background: '#ef4444', 
-                              color: 'white', 
-                              border: 'none', 
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '12px',
+                              background: '#ef4444',
+                              color: 'white',
+                              border: 'none',
                               borderRadius: '4px',
                               cursor: 'pointer'
                             }}
@@ -660,6 +674,53 @@ function SuperAdminDashboard({ user }) {
                         </div>
                       </div>
                     ))
+                  ) : selectedUser.businessAccess ? (
+                    <div style={{
+                      padding: '10px',
+                      background: '#f8fafc',
+                      borderRadius: '8px',
+                      marginBottom: '10px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <strong>{selectedUser.businessAccess.businessType}</strong> - {selectedUser.businessAccess.subscriptionStatus}
+                        (${platformConfig.find(config => config.business_type === selectedUser.businessAccess.businessType)?.monthly_price || selectedUser.businessAccess.monthlyPrice}/month)
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <select
+                          value={selectedUser.businessAccess.subscriptionStatus}
+                          onChange={(e) => updateSubscription(
+                            selectedUser.id,
+                            selectedUser.businessAccess.businessType,
+                            e.target.value,
+                            selectedUser.businessAccess.monthlyPrice,
+                            30
+                          )}
+                          style={{ padding: '4px', fontSize: '12px' }}
+                        >
+                          <option value="trial">Trial</option>
+                          <option value="active">Active</option>
+                          <option value="suspended">Suspended</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                        <button
+                          onClick={() => revokeAccess(selectedUser.id, selectedUser.businessAccess.businessType)}
+                          style={{
+                            padding: '4px 8px',
+                            fontSize: '12px',
+                            background: '#ef4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Revoke
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <p style={{ color: '#64748b', fontStyle: 'italic' }}>No current access</p>
                   )}
@@ -668,17 +729,24 @@ function SuperAdminDashboard({ user }) {
                 <div style={{ marginTop: '20px' }}>
                   <h4>Grant New Access:</h4>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {platformConfig.filter(config => 
-                      !selectedUser.business_access.some(access => access.business_type === config.business_type)
-                    ).map(config => (
-                      <button 
+                    {platformConfig.filter(config => {
+                      // Check both business_access (API) and businessAccess (localStorage)
+                      if (selectedUser.business_access && selectedUser.business_access.length > 0) {
+                        return !selectedUser.business_access.some(access => access.business_type === config.business_type);
+                      }
+                      if (selectedUser.businessAccess) {
+                        return selectedUser.businessAccess.businessType !== config.business_type;
+                      }
+                      return true;
+                    }).map(config => (
+                      <button
                         key={config.business_type}
                         onClick={() => grantAccess(selectedUser.id, config.business_type, 'trial', config.monthly_price)}
-                        style={{ 
-                          padding: '8px 16px', 
-                          background: '#10b981', 
-                          color: 'white', 
-                          border: 'none', 
+                        style={{
+                          padding: '8px 16px',
+                          background: '#10b981',
+                          color: 'white',
+                          border: 'none',
                           borderRadius: '8px',
                           cursor: 'pointer',
                           textTransform: 'capitalize'
