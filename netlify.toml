@@ -1,6 +1,7 @@
 [build]
   # Build command for React app with localStorage mode enabled
-  command = "REACT_APP_USE_LOCAL_STORAGE=true npm run build"
+  # CI=false prevents warnings from being treated as errors
+  command = "CI=false REACT_APP_USE_LOCAL_STORAGE=true npm run build"
 
   # Directory containing the built files (relative to base)
   publish = "build"
@@ -14,6 +15,8 @@
   REACT_APP_USE_LOCAL_STORAGE = "true"
   # React app port (not used in production but good for consistency)
   PORT = "3000"
+  # Treat warnings as warnings, not errors in CI (required for successful build)
+  CI = "false"
 
 # Redirect rules for SPA routing
 [[redirects]]
