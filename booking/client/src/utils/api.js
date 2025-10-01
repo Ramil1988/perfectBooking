@@ -5,7 +5,9 @@ import {
   localStorageBookings,
   localStorageSpecialists,
   localStorageServices,
-  localStorageSuperAdmin
+  localStorageSuperAdmin,
+  localStorageUserAccess,
+  localStoragePlatformPricing
 } from './localStorage';
 
 /**
@@ -196,6 +198,39 @@ export const superAdminAPI = {
       return await localStorageSuperAdmin.updatePlatformConfig(businessType, price);
     }
     const response = await axios.put('/api/super-admin/platform-config', { businessType, price });
+    return response.data;
+  }
+};
+
+// User Access API (for admin business access)
+export const userAccessAPI = {
+  getPermissions: async () => {
+    if (shouldUseLocalStorage()) {
+      const permissions = await localStorageUserAccess.getPermissions();
+      return { permissions };
+    }
+    const response = await axios.get('/api/user-access/permissions');
+    return response.data;
+  },
+
+  getAvailableBusinessTypes: async () => {
+    if (shouldUseLocalStorage()) {
+      const businessTypes = await localStorageUserAccess.getAvailableBusinessTypes();
+      return { businessTypes };
+    }
+    const response = await axios.get('/api/user-access/available-business-types');
+    return response.data;
+  }
+};
+
+// Platform Pricing API
+export const platformPricingAPI = {
+  getPricing: async () => {
+    if (shouldUseLocalStorage()) {
+      const pricing = await localStoragePlatformPricing.getPricing();
+      return { pricing };
+    }
+    const response = await axios.get('/api/super-admin/platform-pricing');
     return response.data;
   }
 };

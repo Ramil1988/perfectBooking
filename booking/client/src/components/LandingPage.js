@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import { platformPricingAPI } from '../utils/api';
 
 function LandingPage() {
   const [activeTestimonial, setActiveTestimonial] = useState(0);
@@ -13,15 +13,17 @@ function LandingPage() {
 
   const fetchPricing = async () => {
     try {
-      const response = await axios.get('/api/super-admin/platform-pricing');
+      const response = await platformPricingAPI.getPricing();
       const pricingMap = {};
-      response.data.pricing.forEach(item => {
-        pricingMap[item.business_type] = {
-          price: `$${item.monthly_price}`,
-          description: item.description
-        };
-      });
-      setDynamicPricing(pricingMap);
+      if (response.pricing && Array.isArray(response.pricing)) {
+        response.pricing.forEach(item => {
+          pricingMap[item.business_type] = {
+            price: `$${item.monthly_price}`,
+            description: item.description
+          };
+        });
+        setDynamicPricing(pricingMap);
+      }
     } catch (error) {
       console.error('Error fetching pricing:', error);
       // Fallback to default pricing if API fails

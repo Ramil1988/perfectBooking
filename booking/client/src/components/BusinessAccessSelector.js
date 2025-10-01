@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { userAccessAPI } from '../utils/api';
 
 function BusinessAccessSelector({ onBusinessSelect, user, onLogout }) {
   const [userPermissions, setUserPermissions] = useState([]);
@@ -13,14 +13,16 @@ function BusinessAccessSelector({ onBusinessSelect, user, onLogout }) {
   const fetchUserAccess = async () => {
     try {
       const [permissionsRes, availableRes] = await Promise.all([
-        axios.get('/api/user-access/permissions'),
-        axios.get('/api/user-access/available-business-types')
+        userAccessAPI.getPermissions(),
+        userAccessAPI.getAvailableBusinessTypes()
       ]);
-      
-      setUserPermissions(permissionsRes.data.permissions);
-      setAvailableBusinessTypes(availableRes.data.businessTypes);
+
+      setUserPermissions(permissionsRes.permissions || []);
+      setAvailableBusinessTypes(availableRes.businessTypes || []);
     } catch (error) {
       console.error('Error fetching user access:', error);
+      setUserPermissions([]);
+      setAvailableBusinessTypes([]);
     } finally {
       setLoading(false);
     }

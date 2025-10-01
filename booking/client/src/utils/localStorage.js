@@ -513,6 +513,67 @@ export const localStorageSuperAdmin = {
   }
 };
 
+// User Access operations (for admin business access)
+export const localStorageUserAccess = {
+  getPermissions: async () => {
+    initializeData();
+    const token = localStorage.getItem('token');
+    if (!token) return [];
+
+    const decoded = JSON.parse(atob(token));
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    const user = users.find(u => u.id === decoded.userId);
+
+    if (!user || user.role !== 'admin') return [];
+
+    // Return permissions based on businessAccess
+    if (user.businessAccess) {
+      return [{
+        business_type: user.businessAccess.businessType,
+        subscription_status: user.businessAccess.subscriptionStatus,
+        monthly_price: user.businessAccess.monthlyPrice,
+        isExpired: false
+      }];
+    }
+
+    return [];
+  },
+
+  getAvailableBusinessTypes: async () => {
+    initializeData();
+    // Return all available business types
+    return [
+      { business_type: 'massage', name: 'Massage Therapy', is_available: true },
+      { business_type: 'dental', name: 'Dental Practice', is_available: true },
+      { business_type: 'beauty', name: 'Beauty Salon', is_available: true }
+    ];
+  }
+};
+
+// Platform Pricing operations
+export const localStoragePlatformPricing = {
+  getPricing: async () => {
+    initializeData();
+    return [
+      {
+        business_type: 'massage',
+        monthly_price: 79.00,
+        description: 'Professional appointment scheduling for massage therapy clinics'
+      },
+      {
+        business_type: 'dental',
+        monthly_price: 99.00,
+        description: 'Professional appointment scheduling for dental practices'
+      },
+      {
+        business_type: 'beauty',
+        monthly_price: 69.00,
+        description: 'Professional appointment scheduling for beauty salons'
+      }
+    ];
+  }
+};
+
 // Check if we should use localStorage mode
 export const shouldUseLocalStorage = () => {
   // Use localStorage if REACT_APP_USE_LOCAL_STORAGE is set to true
