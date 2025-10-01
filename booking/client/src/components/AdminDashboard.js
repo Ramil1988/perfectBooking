@@ -1,9 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useBusinessContext } from '../contexts/BusinessContext';
 import { useNavigate } from 'react-router-dom';
 import CalendarView from './CalendarView';
 import ScheduleModal from './ScheduleModal';
+import {
+  bookingsAPI,
+  usersAPI,
+  specialistsAPI,
+  servicesAPI,
+  availabilityAPI,
+  platformPricingAPI
+} from '../utils/api';
 
 function AdminDashboard({ user }) {
   const { businessConfig } = useBusinessContext();
@@ -84,11 +91,13 @@ function AdminDashboard({ user }) {
     
     try {
       // Get specialist availability for the selected date
-      const availabilityResponse = await axios.get(
-        `/api/specialist-availability?business_type=${businessConfig?.id}&start_date=${appointmentDate}&end_date=${appointmentDate}&specialist_id=${specialistId}`
-      );
-      
-      const availabilities = availabilityResponse.data.availability || [];
+      const availabilityResponse = await availabilityAPI.getForSpecialist(specialistId, {
+        business_type: businessConfig?.id,
+        start_date: appointmentDate,
+        end_date: appointmentDate
+      });
+
+      const availabilities = availabilityResponse.availability || [];
       const todayAvailability = availabilities.find(av => 
         av.specialist_id == specialistId && 
         av.date === appointmentDate && 
@@ -257,10 +266,10 @@ function AdminDashboard({ user }) {
 
   const fetchBookings = async (date = '') => {
     try {
-      const url = date ? `/api/bookings?date=${date}` : '/api/bookings';
-      const response = await axios.get(url);
+      const params = date ? { date } : {};
+      const response = await bookingsAPI.getAll(params);
       // Filter bookings by selected business type and only show confirmed bookings
-      const filteredBookings = response.data.bookings.filter(booking => 
+      const filteredBookings = (response.bookings || []).filter(booking =>
         booking.business_type === businessConfig?.id && booking.status === 'confirmed'
       );
       setBookings(filteredBookings);
@@ -273,9 +282,9 @@ function AdminDashboard({ user }) {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('/api/users');
+      const response = await usersAPI.getAll();
       // Filter out the current admin user from the list
-      const filteredUsers = response.data.users.filter(fetchedUser => fetchedUser.email !== user.email);
+      const filteredUsers = (response.users || []).filter(fetchedUser => fetchedUser.email !== user.email);
       setUsers(filteredUsers);
     } catch (error) {
       setError('Error fetching users');
@@ -284,8 +293,8 @@ function AdminDashboard({ user }) {
 
   const fetchSpecialists = async () => {
     try {
-      const response = await axios.get(`/api/specialists?business_type=${businessConfig?.id}`);
-      setSpecialists(response.data.specialists);
+      const response = await specialistsAPI.getAll(businessConfig?.id);
+      setSpecialists(response.specialists || []);
     } catch (error) {
       setError('Error fetching specialists');
     }
@@ -293,8 +302,8 @@ function AdminDashboard({ user }) {
 
   const fetchServices = async () => {
     try {
-      const response = await axios.get(`/api/services?business_type=${businessConfig?.id}`);
-      setServices(response.data.services);
+      const response = await servicesAPI.getAll(businessConfig?.id);
+      setServices(response.services || []);
     } catch (error) {
       setError('Error fetching services');
     }
@@ -302,8 +311,8 @@ function AdminDashboard({ user }) {
 
   const fetchPlatformPricing = async () => {
     try {
-      const response = await axios.get('/api/super-admin/platform-pricing');
-      setPlatformPricing(response.data.pricing);
+      const response = await platformPricingAPI.getPricing();
+      setPlatformPricing(response.pricing || []);
     } catch (error) {
       console.error('Error fetching platform pricing:', error);
     }
@@ -312,20 +321,22 @@ function AdminDashboard({ user }) {
   const fetchAvailableSlots = async (specialistId, date) => {
     try {
       console.log(`AdminDashboard: fetchAvailableSlots called with specialistId: ${specialistId}, date: ${date}`);
-      
+
       // Use exactly the same logic as CalendarView to eliminate discrepancies
-      const availabilityResponse = await axios.get(
-        `/api/specialist-availability?business_type=${businessConfig?.id}&start_date=${date}&end_date=${date}`
-      );
-      
-      const bookingsResponse = await axios.get(`/api/bookings?date=${date}`);
-      const existingBookings = bookingsResponse.data.bookings.filter(booking => 
+      const availabilityResponse = await availabilityAPI.getForSpecialist(specialistId, {
+        business_type: businessConfig?.id,
+        start_date: date,
+        end_date: date
+      });
+
+      const bookingsResponse = await bookingsAPI.getAll({ date });
+      const existingBookings = (bookingsResponse.bookings || []).filter(booking =>
         booking.business_type === businessConfig?.id && booking.status === 'confirmed'
       );
-      
+
       console.log(`AdminDashboard: Found ${existingBookings.length} existing bookings for business type ${businessConfig?.id}`);
-      
-      const availabilities = availabilityResponse.data.availability || [];
+
+      const availabilities = availabilityResponse.availability || [];
       console.log(`AdminDashboard: Fetching availability for date ${date}:`, availabilities);
       
       if (availabilities.length === 0) {
@@ -397,7 +408,7 @@ function AdminDashboard({ user }) {
 
   const handleStatusUpdate = async (bookingId, status) => {
     try {
-      await axios.put(`/api/bookings/${bookingId}`, { status });
+      await bookingsAPI.update(bookingId, { status });
       setBookings((bookings || []).map(booking =>
         booking.id === bookingId
           ? { ...booking, status }
@@ -418,7 +429,7 @@ function AdminDashboard({ user }) {
     }
 
     try {
-      await axios.delete(`/api/bookings/${bookingId}`);
+      await bookingsAPI.delete(bookingId);
       setBookings((bookings || []).filter(booking => booking.id !== bookingId));
       setSuccess('Booking deleted successfully');
       // Refresh calendar to reflect deletion
@@ -441,9 +452,9 @@ function AdminDashboard({ user }) {
         business_type: businessConfig?.id || 'general',
         duration: newBooking.duration || businessConfig?.defaultDuration || 60
       };
-      
-      const response = await axios.post('/api/bookings', bookingData);
-      setBookings([response.data.booking, ...bookings]);
+
+      const response = await bookingsAPI.create(bookingData);
+      setBookings([response.booking, ...bookings]);
       setSuccess('Booking created successfully');
       setShowBookingForm(false);
       setNewBooking({
@@ -473,8 +484,8 @@ function AdminDashboard({ user }) {
     setError('');
 
     try {
-      const response = await axios.post('/api/users', newCustomer);
-      setUsers([response.data.user, ...users]);
+      const response = await usersAPI.create(newCustomer);
+      setUsers([response.user, ...users]);
       setSuccess('Customer created successfully');
       setShowCustomerForm(false);
       setNewCustomer({
@@ -501,9 +512,9 @@ function AdminDashboard({ user }) {
         ...newSpecialist,
         business_type: businessConfig?.id || 'general'
       };
-      
-      const response = await axios.post('/api/specialists', specialistData);
-      setSpecialists([response.data.specialist, ...specialists]);
+
+      const response = await specialistsAPI.create(specialistData);
+      setSpecialists([response.specialist, ...specialists]);
       setSuccess('Specialist created successfully');
       setShowSpecialistForm(false);
       setNewSpecialist({
@@ -530,9 +541,9 @@ function AdminDashboard({ user }) {
         ...editingSpecialist,
         business_type: businessConfig?.id || 'general'
       };
-      
-      const response = await axios.put(`/api/specialists/${editingSpecialist.id}`, specialistData);
-      setSpecialists((specialists || []).map(s => s.id === editingSpecialist.id ? response.data.specialist : s));
+
+      const response = await specialistsAPI.update(editingSpecialist.id, specialistData);
+      setSpecialists((specialists || []).map(s => s.id === editingSpecialist.id ? response.specialist : s));
       setSuccess('Specialist updated successfully');
       setEditingSpecialist(null);
       setTimeout(() => setSuccess(''), 3000);
@@ -549,7 +560,7 @@ function AdminDashboard({ user }) {
     }
 
     try {
-      await axios.delete(`/api/specialists/${specialistId}`);
+      await specialistsAPI.delete(specialistId);
       setSpecialists((specialists || []).filter(s => s.id !== specialistId));
       setSuccess('Specialist deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -565,8 +576,12 @@ function AdminDashboard({ user }) {
     try {
       const startDate = new Date().toISOString().split('T')[0];
       const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days from now
-      const response = await axios.get(`/api/specialist-availability?specialist_id=${specialist.id}&business_type=${businessConfig?.id}&start_date=${startDate}&end_date=${endDate}`);
-      setScheduleAvailability(response.data.availability);
+      const response = await availabilityAPI.getForSpecialist(specialist.id, {
+        business_type: businessConfig?.id,
+        start_date: startDate,
+        end_date: endDate
+      });
+      setScheduleAvailability(response.availability || []);
     } catch (error) {
       setError('Error fetching specialist availability');
     }
@@ -574,7 +589,7 @@ function AdminDashboard({ user }) {
 
   const handleSaveAvailability = async (availabilityData) => {
     try {
-      await axios.post('/api/specialist-availability', {
+      await availabilityAPI.save({
         ...availabilityData,
         specialist_id: selectedSpecialistForSchedule.id,
         business_type: businessConfig?.id
@@ -601,9 +616,9 @@ function AdminDashboard({ user }) {
         ...newService,
         business_type: businessConfig?.id || 'general'
       };
-      
-      const response = await axios.post('/api/services', serviceData);
-      setServices([response.data.service, ...services]);
+
+      const response = await servicesAPI.create(serviceData);
+      setServices([response.service, ...services]);
       setSuccess('Service created successfully');
       setShowServiceForm(false);
       setNewService({
@@ -630,16 +645,16 @@ function AdminDashboard({ user }) {
         ...editingService,
         business_type: businessConfig?.id || 'general'
       };
-      
-      const response = await axios.put(`/api/services/${editingService.id}`, serviceData);
-      
+
+      const response = await servicesAPI.update(editingService.id, serviceData);
+
       // Check if we got the updated service back
-      if (response.data.service) {
-        setServices((services || []).map(s => s.id === editingService.id ? response.data.service : s));
+      if (response.service) {
+        setServices((services || []).map(s => s.id === editingService.id ? response.service : s));
       } else {
         // Fallback: refetch all services to ensure we have the updated data
-        const servicesResponse = await axios.get(`/api/services?business_type=${businessConfig?.id || 'general'}`);
-        setServices(servicesResponse.data.services);
+        const servicesResponse = await servicesAPI.getAll(businessConfig?.id || 'general');
+        setServices(servicesResponse.services || []);
       }
 
       setSuccess('Service updated successfully');
@@ -658,7 +673,7 @@ function AdminDashboard({ user }) {
     }
 
     try {
-      await axios.delete(`/api/services/${serviceId}`);
+      await servicesAPI.delete(serviceId);
       setServices((services || []).filter(s => s.id !== serviceId));
       setSuccess('Service deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -716,11 +731,13 @@ function AdminDashboard({ user }) {
     }
 
     try {
-      const availabilityResponse = await axios.get(
-        `/api/specialist-availability?business_type=${businessConfig?.id}&start_date=${date}&end_date=${date}&specialist_id=${specialistId}`
-      );
-      
-      const availability = availabilityResponse.data.availability.find(av => 
+      const availabilityResponse = await availabilityAPI.getForSpecialist(specialistId, {
+        business_type: businessConfig?.id,
+        start_date: date,
+        end_date: date
+      });
+
+      const availability = (availabilityResponse.availability || []).find(av => 
         av.specialist_id === parseInt(specialistId) && 
         av.date === date && 
         av.is_available
@@ -771,7 +788,7 @@ function AdminDashboard({ user }) {
       return;
     }
     try {
-      await axios.delete(`/api/users/${userId}`);
+      await usersAPI.delete(userId);
       setUsers((users || []).filter(u => u.id !== userId));
       setSuccess('User deleted successfully');
       setTimeout(() => setSuccess(''), 3000);
@@ -787,7 +804,7 @@ function AdminDashboard({ user }) {
     try {
       if (editingUser) {
         // Update existing user
-        await axios.put(`/api/users/${editingUser.id}`, {
+        await usersAPI.update(editingUser.id, {
           name: newCustomer.name,
           email: newCustomer.email,
           phone: newCustomer.phone,
@@ -802,11 +819,11 @@ function AdminDashboard({ user }) {
         setSuccess('User updated successfully');
       } else {
         // Create new user
-        const response = await axios.post('/api/users', {
+        const response = await usersAPI.create({
           ...newCustomer,
           role: 'customer'
         });
-        setUsers([response.data.user, ...(users || [])]);
+        setUsers([response.user, ...(users || [])]);
         setSuccess('Customer created successfully');
       }
       
@@ -2152,8 +2169,8 @@ function AdminDashboard({ user }) {
                   notes: formData.get('notes')
                 };
                 
-                await axios.put(`/api/bookings/${editingBooking.id}`, updateData);
-                
+                await bookingsAPI.update(editingBooking.id, updateData);
+
                 // Refresh bookings list
                 fetchBookings();
                 setSuccess('Booking updated successfully');

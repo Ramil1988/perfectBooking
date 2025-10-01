@@ -5,6 +5,8 @@ import {
   localStorageBookings,
   localStorageSpecialists,
   localStorageServices,
+  localStorageUsers,
+  localStorageAvailability,
   localStorageSuperAdmin,
   localStorageUserAccess,
   localStoragePlatformPricing
@@ -112,6 +114,32 @@ export const specialistsAPI = {
     return response.data;
   },
 
+  create: async (specialistData) => {
+    if (shouldUseLocalStorage()) {
+      const specialist = await localStorageSpecialists.create(specialistData);
+      return { message: 'Specialist created successfully', specialist };
+    }
+    const response = await axios.post('/api/specialists', specialistData);
+    return response.data;
+  },
+
+  update: async (specialistId, updates) => {
+    if (shouldUseLocalStorage()) {
+      const specialist = await localStorageSpecialists.update(specialistId, updates);
+      return { message: 'Specialist updated successfully', specialist };
+    }
+    const response = await axios.put(`/api/specialists/${specialistId}`, updates);
+    return response.data;
+  },
+
+  delete: async (specialistId) => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageSpecialists.delete(specialistId);
+    }
+    const response = await axios.delete(`/api/specialists/${specialistId}`);
+    return response.data;
+  },
+
   getAvailability: async (specialistId, date) => {
     if (shouldUseLocalStorage()) {
       const availability = await localStorageSpecialists.getAvailability(specialistId, date);
@@ -131,6 +159,102 @@ export const servicesAPI = {
     }
     const params = businessType ? { business_type: businessType } : {};
     const response = await axios.get('/api/services', { params });
+    return response.data;
+  },
+
+  create: async (serviceData) => {
+    if (shouldUseLocalStorage()) {
+      const service = await localStorageServices.create(serviceData);
+      return { message: 'Service created successfully', service };
+    }
+    const response = await axios.post('/api/services', serviceData);
+    return response.data;
+  },
+
+  update: async (serviceId, updates) => {
+    if (shouldUseLocalStorage()) {
+      const service = await localStorageServices.update(serviceId, updates);
+      return { message: 'Service updated successfully', service };
+    }
+    const response = await axios.put(`/api/services/${serviceId}`, updates);
+    return response.data;
+  },
+
+  delete: async (serviceId) => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageServices.delete(serviceId);
+    }
+    const response = await axios.delete(`/api/services/${serviceId}`);
+    return response.data;
+  }
+};
+
+// Users API (for admin creating/managing customers)
+export const usersAPI = {
+  getAll: async () => {
+    if (shouldUseLocalStorage()) {
+      const users = await localStorageUsers.getAll();
+      return { users };
+    }
+    const response = await axios.get('/api/users');
+    return response.data;
+  },
+
+  create: async (userData) => {
+    if (shouldUseLocalStorage()) {
+      const user = await localStorageUsers.create(userData);
+      return { message: 'User created successfully', user };
+    }
+    const response = await axios.post('/api/users', userData);
+    return response.data;
+  },
+
+  update: async (userId, updates) => {
+    if (shouldUseLocalStorage()) {
+      const user = await localStorageUsers.update(userId, updates);
+      return { message: 'User updated successfully', user };
+    }
+    const response = await axios.put(`/api/users/${userId}`, updates);
+    return response.data;
+  },
+
+  delete: async (userId) => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageUsers.delete(userId);
+    }
+    const response = await axios.delete(`/api/users/${userId}`);
+    return response.data;
+  }
+};
+
+// Availability API
+export const availabilityAPI = {
+  getForSpecialist: async (specialistId, params) => {
+    if (shouldUseLocalStorage()) {
+      const availability = await localStorageAvailability.getForSpecialist(
+        specialistId,
+        params?.start_date,
+        params?.end_date
+      );
+      return { availability };
+    }
+    const response = await axios.get('/api/specialist-availability', {
+      params: { ...params, specialist_id: specialistId }
+    });
+    return response.data;
+  },
+
+  save: async (data) => {
+    if (shouldUseLocalStorage()) {
+      const availability = await localStorageAvailability.save(data.specialist_id, {
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        is_available: data.is_available
+      });
+      return { message: 'Availability saved successfully', availability };
+    }
+    const response = await axios.post('/api/specialist-availability', data);
     return response.data;
   }
 };

@@ -358,6 +358,74 @@ export const localStorageSpecialists = {
     return specialists;
   },
 
+  create: async (specialistData) => {
+    initializeData();
+    const specialists = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALISTS));
+
+    // Check if email exists
+    if (specialistData.email && specialists.some(s => s.email === specialistData.email)) {
+      throw new Error('Email already exists');
+    }
+
+    const newSpecialist = {
+      id: getNextId('specialists'),
+      name: specialistData.name,
+      specialty: specialistData.specialty,
+      business_type: specialistData.business_type,
+      email: specialistData.email || null,
+      phone: specialistData.phone || null,
+      is_active: 1,
+      created_at: new Date().toISOString()
+    };
+
+    specialists.push(newSpecialist);
+    localStorage.setItem(STORAGE_KEYS.SPECIALISTS, JSON.stringify(specialists));
+
+    return newSpecialist;
+  },
+
+  update: async (specialistId, updates) => {
+    initializeData();
+    const specialists = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALISTS));
+    const specialistIndex = specialists.findIndex(s => s.id === parseInt(specialistId));
+
+    if (specialistIndex === -1) {
+      throw new Error('Specialist not found');
+    }
+
+    // Check if email exists for other specialists
+    if (updates.email) {
+      const emailExists = specialists.some(s => s.email === updates.email && s.id !== parseInt(specialistId));
+      if (emailExists) {
+        throw new Error('Email already exists');
+      }
+    }
+
+    specialists[specialistIndex] = { ...specialists[specialistIndex], ...updates };
+    localStorage.setItem(STORAGE_KEYS.SPECIALISTS, JSON.stringify(specialists));
+
+    return specialists[specialistIndex];
+  },
+
+  delete: async (specialistId) => {
+    initializeData();
+    const specialists = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALISTS));
+    const filteredSpecialists = specialists.filter(s => s.id !== parseInt(specialistId));
+
+    if (specialists.length === filteredSpecialists.length) {
+      throw new Error('Specialist not found');
+    }
+
+    localStorage.setItem(STORAGE_KEYS.SPECIALISTS, JSON.stringify(filteredSpecialists));
+
+    // Also delete specialist's bookings
+    const bookings = JSON.parse(localStorage.getItem(STORAGE_KEYS.BOOKINGS));
+    const filteredBookings = bookings.filter(b => b.staff_id !== parseInt(specialistId));
+    localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(filteredBookings));
+
+    return { message: 'Specialist deleted successfully' };
+  },
+
   getAvailability: async (specialistId, date) => {
     initializeData();
     const availability = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALIST_AVAILABILITY) || '[]');
@@ -380,6 +448,192 @@ export const localStorageServices = {
     }
 
     return services;
+  },
+
+  create: async (serviceData) => {
+    initializeData();
+    const services = JSON.parse(localStorage.getItem(STORAGE_KEYS.SERVICES));
+
+    const newService = {
+      id: getNextId('services'),
+      name: serviceData.name,
+      business_type: serviceData.business_type,
+      description: serviceData.description || null,
+      price: parseFloat(serviceData.price) || 0,
+      duration: parseInt(serviceData.duration) || 60,
+      is_active: 1,
+      created_at: new Date().toISOString()
+    };
+
+    services.push(newService);
+    localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(services));
+
+    return newService;
+  },
+
+  update: async (serviceId, updates) => {
+    initializeData();
+    const services = JSON.parse(localStorage.getItem(STORAGE_KEYS.SERVICES));
+    const serviceIndex = services.findIndex(s => s.id === parseInt(serviceId));
+
+    if (serviceIndex === -1) {
+      throw new Error('Service not found');
+    }
+
+    // Update price and duration with proper type conversion
+    const updatedData = { ...updates };
+    if (updates.price !== undefined) {
+      updatedData.price = parseFloat(updates.price);
+    }
+    if (updates.duration !== undefined) {
+      updatedData.duration = parseInt(updates.duration);
+    }
+
+    services[serviceIndex] = { ...services[serviceIndex], ...updatedData };
+    localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(services));
+
+    return services[serviceIndex];
+  },
+
+  delete: async (serviceId) => {
+    initializeData();
+    const services = JSON.parse(localStorage.getItem(STORAGE_KEYS.SERVICES));
+    const filteredServices = services.filter(s => s.id !== parseInt(serviceId));
+
+    if (services.length === filteredServices.length) {
+      throw new Error('Service not found');
+    }
+
+    localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(filteredServices));
+
+    return { message: 'Service deleted successfully' };
+  }
+};
+
+// Users management operations (for admin creating customers)
+export const localStorageUsers = {
+  getAll: async () => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    // Return only customers, not admins
+    return users
+      .filter(u => u.role === 'customer')
+      .map(user => ({
+        ...user,
+        password: undefined // Don't expose passwords
+      }));
+  },
+
+  create: async (userData) => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+
+    // Check if email exists
+    if (users.some(u => u.email === userData.email)) {
+      throw new Error('Email already exists');
+    }
+
+    const newUser = {
+      id: getNextId('users'),
+      name: userData.name,
+      email: userData.email,
+      password: userData.password || '$2a$10$default', // Default hashed password
+      role: 'customer',
+      phone: userData.phone || null,
+      created_at: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+
+    return { ...newUser, password: undefined };
+  },
+
+  update: async (userId, updates) => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    const userIndex = users.findIndex(u => u.id === parseInt(userId));
+
+    if (userIndex === -1) {
+      throw new Error('User not found');
+    }
+
+    // Check if email exists for other users
+    if (updates.email) {
+      const emailExists = users.some(u => u.email === updates.email && u.id !== parseInt(userId));
+      if (emailExists) {
+        throw new Error('Email already exists');
+      }
+    }
+
+    // Don't allow role change for security
+    const updatedData = { ...updates };
+    delete updatedData.role;
+
+    users[userIndex] = { ...users[userIndex], ...updatedData };
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+
+    return { ...users[userIndex], password: undefined };
+  },
+
+  delete: async (userId) => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    const filteredUsers = users.filter(u => u.id !== parseInt(userId));
+
+    if (users.length === filteredUsers.length) {
+      throw new Error('User not found');
+    }
+
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filteredUsers));
+
+    // Also delete user's bookings
+    const bookings = JSON.parse(localStorage.getItem(STORAGE_KEYS.BOOKINGS));
+    const filteredBookings = bookings.filter(b => b.user_id !== parseInt(userId));
+    localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(filteredBookings));
+
+    return { message: 'User deleted successfully' };
+  }
+};
+
+// Specialist Availability operations
+export const localStorageAvailability = {
+  getForSpecialist: async (specialistId, startDate, endDate) => {
+    initializeData();
+    const availability = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALIST_AVAILABILITY) || '[]');
+
+    return availability.filter(a => {
+      if (a.specialist_id !== parseInt(specialistId)) return false;
+      if (startDate && a.date < startDate) return false;
+      if (endDate && a.date > endDate) return false;
+      return true;
+    });
+  },
+
+  save: async (specialistId, availabilityData) => {
+    initializeData();
+    let availability = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALIST_AVAILABILITY) || '[]');
+
+    // Remove existing availability for this specialist and date
+    availability = availability.filter(a =>
+      !(a.specialist_id === parseInt(specialistId) && a.date === availabilityData.date)
+    );
+
+    // Add new availability
+    const newAvailability = {
+      id: Date.now(), // Simple ID generation
+      specialist_id: parseInt(specialistId),
+      date: availabilityData.date,
+      start_time: availabilityData.start_time,
+      end_time: availabilityData.end_time,
+      is_available: availabilityData.is_available !== undefined ? availabilityData.is_available : 1,
+      created_at: new Date().toISOString()
+    };
+
+    availability.push(newAvailability);
+    localStorage.setItem(STORAGE_KEYS.SPECIALIST_AVAILABILITY, JSON.stringify(availability));
+
+    return newAvailability;
   }
 };
 
