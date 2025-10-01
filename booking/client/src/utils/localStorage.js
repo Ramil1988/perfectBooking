@@ -383,6 +383,136 @@ export const localStorageServices = {
   }
 };
 
+// Super Admin operations
+export const localStorageSuperAdmin = {
+  getUsers: async () => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    return users.map(user => ({
+      ...user,
+      password: undefined // Don't expose passwords
+    }));
+  },
+
+  getPlatformConfig: async () => {
+    initializeData();
+    // Return configuration for different business types
+    return [
+      {
+        business_type: 'massage',
+        monthly_price: 79.00,
+        status: 'active',
+        description: 'Massage therapy clinics and spa services'
+      },
+      {
+        business_type: 'dental',
+        monthly_price: 99.00,
+        status: 'active',
+        description: 'Dental clinics and orthodontics'
+      },
+      {
+        business_type: 'beauty',
+        monthly_price: 69.00,
+        status: 'active',
+        description: 'Beauty salons and cosmetic services'
+      }
+    ];
+  },
+
+  getAnalytics: async () => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    const bookings = JSON.parse(localStorage.getItem(STORAGE_KEYS.BOOKINGS));
+    const specialists = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALISTS));
+    const services = JSON.parse(localStorage.getItem(STORAGE_KEYS.SERVICES));
+
+    return {
+      totalUsers: users.length,
+      totalBookings: bookings.length,
+      totalRevenue: bookings.reduce((sum, b) => sum + (b.payment_amount || 0), 0),
+      activeSpecialists: specialists.filter(s => s.is_active === 1).length,
+      activeServices: services.filter(s => s.is_active === 1).length,
+      usersByRole: {
+        customer: users.filter(u => u.role === 'customer').length,
+        admin: users.filter(u => u.role === 'admin').length,
+        superadmin: users.filter(u => u.role === 'superadmin').length
+      }
+    };
+  },
+
+  grantAccess: async (userId, businessType, subscriptionStatus, monthlyPrice, subscriptionDuration) => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    if (userIndex === -1) {
+      throw new Error('User not found');
+    }
+
+    // Update user with business access
+    users[userIndex].businessAccess = {
+      businessType,
+      subscriptionStatus,
+      monthlyPrice,
+      subscriptionDuration,
+      grantedAt: new Date().toISOString()
+    };
+
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    return { message: 'Access granted successfully' };
+  },
+
+  createUser: async (userData) => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+
+    // Check if email exists
+    if (users.some(u => u.email === userData.email)) {
+      throw new Error('Email already exists');
+    }
+
+    const newUser = {
+      id: getNextId('users'),
+      name: userData.fullName,
+      email: userData.email,
+      password: '$2a$10$8K1p/a0dL3LPB9H2Z0K0XO5J5Z0K0K0K0K0K0K0K0K0K0K0K0K0K0', // Hashed password
+      role: userData.role || 'customer',
+      phone: userData.phone || '',
+      created_at: new Date().toISOString()
+    };
+
+    users.push(newUser);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+
+    return { message: 'User created successfully', user: { ...newUser, password: undefined } };
+  },
+
+  deleteUser: async (userId) => {
+    initializeData();
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
+    const filteredUsers = users.filter(u => u.id !== userId);
+
+    if (users.length === filteredUsers.length) {
+      throw new Error('User not found');
+    }
+
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filteredUsers));
+
+    // Also delete user's bookings
+    const bookings = JSON.parse(localStorage.getItem(STORAGE_KEYS.BOOKINGS));
+    const filteredBookings = bookings.filter(b => b.user_id !== userId);
+    localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(filteredBookings));
+
+    return { message: 'User deleted successfully' };
+  },
+
+  updatePlatformConfig: async (businessType, price) => {
+    // In localStorage mode, this is just for demo purposes
+    // Actual config is returned from getPlatformConfig()
+    return { message: 'Price updated successfully (demo mode)' };
+  }
+};
+
 // Check if we should use localStorage mode
 export const shouldUseLocalStorage = () => {
   // Use localStorage if REACT_APP_USE_LOCAL_STORAGE is set to true

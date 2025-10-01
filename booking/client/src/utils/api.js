@@ -4,7 +4,8 @@ import {
   localStorageAuth,
   localStorageBookings,
   localStorageSpecialists,
-  localStorageServices
+  localStorageServices,
+  localStorageSuperAdmin
 } from './localStorage';
 
 /**
@@ -128,6 +129,73 @@ export const servicesAPI = {
     }
     const params = businessType ? { business_type: businessType } : {};
     const response = await axios.get('/api/services', { params });
+    return response.data;
+  }
+};
+
+// Super Admin API
+export const superAdminAPI = {
+  getUsers: async () => {
+    if (shouldUseLocalStorage()) {
+      const users = await localStorageSuperAdmin.getUsers();
+      return { users };
+    }
+    const response = await axios.get('/api/super-admin/users');
+    return response.data;
+  },
+
+  getPlatformConfig: async () => {
+    if (shouldUseLocalStorage()) {
+      const config = await localStorageSuperAdmin.getPlatformConfig();
+      return { config };
+    }
+    const response = await axios.get('/api/super-admin/platform-config');
+    return response.data;
+  },
+
+  getAnalytics: async () => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageSuperAdmin.getAnalytics();
+    }
+    const response = await axios.get('/api/super-admin/analytics');
+    return response.data;
+  },
+
+  grantAccess: async (userId, businessType, subscriptionStatus, monthlyPrice, subscriptionDuration) => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageSuperAdmin.grantAccess(userId, businessType, subscriptionStatus, monthlyPrice, subscriptionDuration);
+    }
+    const response = await axios.post('/api/super-admin/grant-access', {
+      userId,
+      businessType,
+      subscriptionStatus,
+      monthlyPrice,
+      subscriptionDuration
+    });
+    return response.data;
+  },
+
+  createUser: async (userData) => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageSuperAdmin.createUser(userData);
+    }
+    const response = await axios.post('/api/super-admin/create-user', userData);
+    return response.data;
+  },
+
+  deleteUser: async (userId) => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageSuperAdmin.deleteUser(userId);
+    }
+    const response = await axios.delete(`/api/super-admin/delete-user/${userId}`);
+    return response.data;
+  },
+
+  updatePlatformConfig: async (businessType, price) => {
+    if (shouldUseLocalStorage()) {
+      return await localStorageSuperAdmin.updatePlatformConfig(businessType, price);
+    }
+    const response = await axios.put('/api/super-admin/platform-config', { businessType, price });
     return response.data;
   }
 };

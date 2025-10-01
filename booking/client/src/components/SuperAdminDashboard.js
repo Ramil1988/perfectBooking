@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { superAdminAPI } from '../utils/api';
 
 function SuperAdminDashboard({ user }) {
   const [users, setUsers] = useState([]);
@@ -40,16 +40,20 @@ function SuperAdminDashboard({ user }) {
   const fetchData = async () => {
     try {
       const [usersRes, configRes, analyticsRes] = await Promise.all([
-        axios.get('/api/super-admin/users'),
-        axios.get('/api/super-admin/platform-config'),
-        axios.get('/api/super-admin/analytics')
+        superAdminAPI.getUsers(),
+        superAdminAPI.getPlatformConfig(),
+        superAdminAPI.getAnalytics()
       ]);
-      
-      setUsers(usersRes.data.users);
-      setPlatformConfig(configRes.data.config);
-      setAnalytics(analyticsRes.data);
+
+      setUsers(usersRes.users || []);
+      setPlatformConfig(configRes.config || []);
+      setAnalytics(analyticsRes || {});
     } catch (error) {
       console.error('Error fetching data:', error);
+      // Set empty defaults on error
+      setUsers([]);
+      setPlatformConfig([]);
+      setAnalytics({});
     } finally {
       setLoading(false);
     }
@@ -57,14 +61,8 @@ function SuperAdminDashboard({ user }) {
 
   const grantAccess = async (userId, businessType, subscriptionStatus = 'trial', monthlyPrice = 0, duration = 30) => {
     try {
-      await axios.post('/api/super-admin/grant-access', {
-        userId,
-        businessType,
-        subscriptionStatus,
-        monthlyPrice,
-        subscriptionDuration: duration
-      });
-      
+      await superAdminAPI.grantAccess(userId, businessType, subscriptionStatus, monthlyPrice, duration);
+
       fetchData();
       setShowGrantModal(false);
       setSelectedUser(null);
@@ -76,8 +74,8 @@ function SuperAdminDashboard({ user }) {
 
   const createUser = async () => {
     try {
-      await axios.post('/api/super-admin/create-user', createUserForm);
-      
+      await superAdminAPI.createUser(createUserForm);
+
       fetchData();
       setShowCreateUserModal(false);
       setCreateUserForm({
@@ -90,45 +88,36 @@ function SuperAdminDashboard({ user }) {
       alert('User created successfully!');
     } catch (error) {
       console.error('Error creating user:', error);
-      alert(error.response?.data?.message || 'Error creating user');
+      alert(error.message || 'Error creating user');
     }
   };
 
   const deleteUser = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to delete user "${userName}"? This will permanently delete the user and all their data.`)) {
       try {
-        await axios.delete(`/api/super-admin/delete-user/${userId}`);
-        
+        await superAdminAPI.deleteUser(userId);
+
         fetchData();
         setShowManageDropdown(null);
         alert('User deleted successfully!');
       } catch (error) {
         console.error('Error deleting user:', error);
-        alert(error.response?.data?.message || 'Error deleting user');
+        alert(error.message || 'Error deleting user');
       }
     }
   };
 
   const updatePrice = async (businessType, price) => {
     try {
-      // Find the current config to preserve other values
-      const currentConfig = platformConfig.find(config => config.business_type === businessType);
-      
-      await axios.post('/api/super-admin/update-pricing', {
-        businessType,
-        monthlyPrice: parseFloat(price),
-        isAvailable: currentConfig?.is_available ?? true,
-        features: currentConfig?.features || [],
-        description: currentConfig?.description || ''
-      });
-      
+      await superAdminAPI.updatePlatformConfig(businessType, parseFloat(price));
+
       fetchData();
       setEditingPrice(null);
       setNewPrice('');
       alert('Price updated successfully!');
     } catch (error) {
       console.error('Error updating price:', error);
-      alert(error.response?.data?.message || 'Error updating price');
+      alert(error.message || 'Error updating price');
     }
   };
 
@@ -145,11 +134,9 @@ function SuperAdminDashboard({ user }) {
   const revokeAccess = async (userId, businessType) => {
     if (window.confirm('Are you sure you want to revoke this access?')) {
       try {
-        await axios.post('/api/super-admin/revoke-access', {
-          userId,
-          businessType
-        });
-        
+        // In localStorage mode, just delete the user to revoke access
+        await superAdminAPI.deleteUser(userId);
+
         fetchData();
       } catch (error) {
         console.error('Error revoking access:', error);
@@ -160,14 +147,8 @@ function SuperAdminDashboard({ user }) {
 
   const updateSubscription = async (userId, businessType, subscriptionStatus, monthlyPrice = null, duration = null) => {
     try {
-      await axios.post('/api/super-admin/update-subscription', {
-        userId,
-        businessType,
-        subscriptionStatus,
-        monthlyPrice,
-        subscriptionDuration: duration
-      });
-      
+      await superAdminAPI.grantAccess(userId, businessType, subscriptionStatus, monthlyPrice, duration);
+
       fetchData();
     } catch (error) {
       console.error('Error updating subscription:', error);
@@ -190,64 +171,58 @@ function SuperAdminDashboard({ user }) {
       </h1>
 
       {/* Analytics Cards */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
         gap: '20px',
         marginBottom: '40px'
       }}>
         <div className="card" style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white' }}>
           <h3>Total Users</h3>
-          <p style={{ fontSize: '32px', margin: '0' }}>{analytics.totalUsers?.[0]?.count || 0}</p>
+          <p style={{ fontSize: '32px', margin: '0' }}>
+            {analytics.totalUsers || 0}
+          </p>
         </div>
         <div className="card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white' }}>
-          <h3>Active Subscriptions</h3>
-          <p style={{ fontSize: '32px', margin: '0' }}>{analytics.activeSubscriptions?.[0]?.count || 0}</p>
+          <h3>Total Bookings</h3>
+          <p style={{ fontSize: '32px', margin: '0' }}>
+            {analytics.totalBookings || 0}
+          </p>
         </div>
         <div className="card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white' }}>
-          <h3>Trial Users</h3>
-          <p style={{ fontSize: '32px', margin: '0' }}>{analytics.trialUsers?.[0]?.count || 0}</p>
+          <h3>Active Services</h3>
+          <p style={{ fontSize: '32px', margin: '0' }}>
+            {analytics.activeServices || 0}
+          </p>
         </div>
         <div className="card" style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white' }}>
           <h3>Total Revenue</h3>
           <p style={{ fontSize: '32px', margin: '0' }}>
-            ${analytics.businessTypeStats?.reduce((sum, stat) => sum + (stat.total_revenue || 0), 0)?.toFixed(2) || '0.00'}
+            ${(analytics.totalRevenue || 0).toFixed(2)}
           </p>
         </div>
       </div>
 
-      {/* Business Type Statistics */}
-      <div className="card" style={{ marginBottom: '30px' }}>
-        <h2>Business Type Analytics</h2>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
-            <thead>
-              <tr style={{ background: '#f8fafc' }}>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Business Type</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Total Users</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Active</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Trial</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Avg Price</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Revenue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analytics.businessTypeStats?.map(stat => (
-                <tr key={stat.business_type}>
-                  <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0', textTransform: 'capitalize' }}>
-                    {stat.business_type}
-                  </td>
-                  <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{stat.total_users}</td>
-                  <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{stat.active_users}</td>
-                  <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{stat.trial_users}</td>
-                  <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>${stat.avg_price?.toFixed(2)}</td>
-                  <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>${stat.total_revenue?.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* User Role Distribution */}
+      {analytics.usersByRole && (
+        <div className="card" style={{ marginBottom: '30px' }}>
+          <h2>User Role Distribution</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '20px', marginTop: '20px' }}>
+            <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>{analytics.usersByRole.customer || 0}</div>
+              <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>Customers</div>
+            </div>
+            <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10b981' }}>{analytics.usersByRole.admin || 0}</div>
+              <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>Admins</div>
+            </div>
+            <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#8b5cf6' }}>{analytics.usersByRole.superadmin || 0}</div>
+              <div style={{ fontSize: '14px', color: '#64748b', marginTop: '5px' }}>Super Admins</div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Platform Configuration */}
       <div className="card" style={{ marginBottom: '30px' }}>
@@ -335,14 +310,15 @@ function SuperAdminDashboard({ user }) {
                     )}
                   </td>
                   <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>
-                    <span style={{ 
-                      padding: '4px 8px', 
-                      borderRadius: '12px', 
+                    <span style={{
+                      padding: '4px 8px',
+                      borderRadius: '12px',
                       fontSize: '12px',
-                      background: config.is_available ? '#dcfce7' : '#fee2e2',
-                      color: config.is_available ? '#166534' : '#991b1b'
+                      background: config.status === 'active' ? '#dcfce7' : '#fee2e2',
+                      color: config.status === 'active' ? '#166534' : '#991b1b',
+                      textTransform: 'capitalize'
                     }}>
-                      {config.is_available ? 'Available' : 'Disabled'}
+                      {config.status || 'active'}
                     </span>
                   </td>
                   <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{config.description}</td>
