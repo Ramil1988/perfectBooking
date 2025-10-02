@@ -18,9 +18,9 @@ function Navbar({ user, onLogout }) {
             <span style={{ fontSize: '1.5em' }}>📅</span>
           )}
           <h1>
-            {user?.role === 'superadmin' ? 'AppointSync - Super Admin' :
-             user?.role === 'customer' ? 'AppointSync' :
-             (businessConfig ? businessConfig.name : 'AppointSync')}
+            {user?.role === 'superadmin' ? 'PerfectBooking - Super Admin' :
+             user?.role === 'customer' ? 'PerfectBooking' :
+             (businessConfig ? businessConfig.name : 'PerfectBooking')}
           </h1>
         </Link>
         

@@ -273,7 +273,7 @@ function CompanySelector({ onCompanySelect }) {
             marginBottom: '16px',
             color: '#1e293b'
           }}>
-            AppointSync
+            PerfectBooking
           </h3>
           <p style={{ 
             color: '#64748b',
@@ -331,7 +331,7 @@ function CompanySelector({ onCompanySelect }) {
             color: '#64748b'
           }}>
             <p style={{ margin: 0 }}>
-              © 2025 AppointSync. All rights reserved. | 
+              © 2025 PerfectBooking. All rights reserved. | 
               <span style={{ margin: '0 8px' }}>•</span>
               Empowering businesses with seamless appointment management
             </p>

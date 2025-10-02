@@ -62,7 +62,7 @@ function LandingPage() {
       name: "Sarah Johnson",
       role: "Spa Owner",
       business: "Serenity Wellness Spa",
-      quote: "AppointSync transformed our business operations. We've seen a 40% increase in bookings and our staff loves how easy it is to manage schedules.",
+      quote: "PerfectBooking transformed our business operations. We've seen a 40% increase in bookings and our staff loves how easy it is to manage schedules.",
       rating: 5
     },
     {
@@ -137,7 +137,7 @@ function LandingPage() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '1.8em' }}>🚀</span>
-          <h1 style={{ margin: 0, fontSize: '1.5em', fontWeight: 'bold' }}>AppointSync</h1>
+          <h1 style={{ margin: 0, fontSize: '1.5em', fontWeight: 'bold' }}>PerfectBooking</h1>
         </div>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <a href="#features" style={{ color: 'white', textDecoration: 'none' }}>Features</a>
@@ -509,7 +509,7 @@ function LandingPage() {
             marginBottom: '30px',
             fontWeight: 'bold'
           }}>
-            See AppointSync In Action
+            See PerfectBooking In Action
           </h2>
           <p style={{ 
             fontSize: '1.2em', 
@@ -645,7 +645,7 @@ function LandingPage() {
             marginBottom: '40px',
             opacity: 0.9
           }}>
-            Join thousands of satisfied business owners who have streamlined their operations with AppointSync
+            Join thousands of satisfied business owners who have streamlined their operations with PerfectBooking
           </p>
           
           <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -687,7 +687,7 @@ function LandingPage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
             <span style={{ fontSize: '1.5em' }}>🚀</span>
-            <h3 style={{ margin: 0 }}>AppointSync</h3>
+            <h3 style={{ margin: 0 }}>PerfectBooking</h3>
           </div>
           <p style={{ opacity: 0.8, marginBottom: '20px' }}>
             The complete booking management solution for modern businesses
@@ -705,7 +705,7 @@ function LandingPage() {
             <Link to="/register" style={{ color: 'rgba(255, 255, 255, 0.8)', textDecoration: 'none' }}>Sign Up</Link>
           </div>
           <p style={{ opacity: 0.6, fontSize: '0.9em' }}>
-            © 2025 AppointSync. All rights reserved.
+            © 2025 PerfectBooking. All rights reserved.
           </p>
         </div>
       </footer>
