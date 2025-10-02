@@ -229,6 +229,20 @@ export const usersAPI = {
 
 // Availability API
 export const availabilityAPI = {
+  getAll: async (params) => {
+    if (shouldUseLocalStorage()) {
+      // For localStorage mode, get all specialists' availability
+      const availability = await localStorageAvailability.getAll(
+        params?.business_type,
+        params?.start_date,
+        params?.end_date
+      );
+      return { availability };
+    }
+    const response = await axios.get('/api/specialist-availability', { params });
+    return response.data;
+  },
+
   getForSpecialist: async (specialistId, params) => {
     if (shouldUseLocalStorage()) {
       const availability = await localStorageAvailability.getForSpecialist(

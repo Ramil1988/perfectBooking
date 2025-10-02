@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useBusinessContext } from '../contexts/BusinessContext';
+import { bookingsAPI, usersAPI, specialistsAPI, availabilityAPI } from '../utils/api';
 
 function CalendarView({ user }) {
   const { businessConfig } = useBusinessContext();
@@ -65,9 +65,9 @@ function CalendarView({ user }) {
   const fetchMonthBookings = async () => {
     try {
       console.log('CalendarView: Fetching month bookings for business type:', businessConfig?.id);
-      const response = await axios.get('/api/bookings');
-      console.log('CalendarView: Received bookings response:', response.data);
-      const filtered = response.data.bookings.filter(booking => 
+      const data = await bookingsAPI.getAll();
+      console.log('CalendarView: Received bookings response:', data);
+      const filtered = data.bookings.filter(booking =>
         booking.business_type === businessConfig?.id && booking.status === 'confirmed'
       );
       console.log(`CalendarView: Filtered ${filtered.length} bookings for business type ${businessConfig?.id}:`, filtered);
@@ -79,8 +79,8 @@ function CalendarView({ user }) {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('/api/users');
-      setUsers(response.data.users.filter(u => u.role === 'customer'));
+      const data = await usersAPI.getAll();
+      setUsers(data.users.filter(u => u.role === 'customer'));
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -88,9 +88,9 @@ function CalendarView({ user }) {
 
   const fetchSpecialists = async () => {
     try {
-      const response = await axios.get(`/api/specialists?business_type=${businessConfig?.id}`);
+      const data = await specialistsAPI.getAll(businessConfig?.id);
       // Only show active specialists
-      setSpecialists(response.data.specialists.filter(s => s.is_active));
+      setSpecialists(data.specialists.filter(s => s.is_active));
     } catch (error) {
       console.error('Error fetching specialists:', error);
     }
@@ -102,8 +102,8 @@ function CalendarView({ user }) {
     console.log('Fetching day schedule for:', dateStr);
     try {
       // Get bookings for this day
-      const response = await axios.get(`/api/bookings?date=${dateStr}`);
-      const dayBookingsFiltered = response.data.bookings.filter(booking => 
+      const data = await bookingsAPI.getAll({ date: dateStr });
+      const dayBookingsFiltered = data.bookings.filter(booking =>
         booking.business_type === businessConfig?.id
       );
       console.log(`CalendarView: Day bookings for ${dateStr}:`, dayBookingsFiltered);
@@ -119,20 +119,52 @@ function CalendarView({ user }) {
   const generateAvailableSlots = async (date, existingBookings) => {
     const slots = [];
     const dateStr = date.toISOString().split('T')[0];
-    
+
     try {
       // For specialists, fetch their availability from the database
-      const availabilityResponse = await axios.get(
-          `/api/specialist-availability?business_type=${businessConfig?.id}&start_date=${dateStr}&end_date=${dateStr}`
-        );
-        
-        const availabilities = availabilityResponse.data.availability || [];
+      const availabilityData = await availabilityAPI.getAll({
+        business_type: businessConfig?.id,
+        start_date: dateStr,
+        end_date: dateStr
+      });
+
+        const availabilities = availabilityData.availability || [];
         console.log(`Fetching availability for date ${dateStr}:`, availabilities);
-        
+
+        // If no explicit availability, derive specialists from bookings
         if (availabilities.length === 0) {
-          setAvailableProviders([]);
-          setAvailableSlots([]);
-          return;
+          const specialistsInBookings = existingBookings
+            .map(b => specialists.find(s => s.id === b.staff_id))
+            .filter((s, i, arr) => s && arr.findIndex(x => x?.id === s.id) === i);
+
+          if (specialistsInBookings.length > 0) {
+            console.log('No availability set, but found bookings. Deriving specialists:', specialistsInBookings);
+            setAvailableProviders(specialistsInBookings);
+
+            // Generate default time slots based on bookings
+            const bookingTimes = existingBookings.map(b => b.appointment_time).sort();
+            if (bookingTimes.length > 0) {
+              // Create slots around existing bookings
+              specialistsInBookings.forEach(specialist => {
+                const specialistBookings = existingBookings.filter(b => b.staff_id === specialist.id);
+                specialistBookings.forEach(booking => {
+                  slots.push({
+                    time: booking.appointment_time,
+                    provider: specialist,
+                    date: date,
+                    isBooked: true,
+                    booking: booking
+                  });
+                });
+              });
+            }
+            setAvailableSlots(slots);
+            return;
+          } else {
+            setAvailableProviders([]);
+            setAvailableSlots([]);
+            return;
+          }
         }
         
         // Get unique specialists who have availability for this date
@@ -277,20 +309,22 @@ function CalendarView({ user }) {
   // Calculate valid durations for the selected time slot using real availability data and existing bookings
   const calculateValidDurations = async (slot) => {
     if (!slot || !slot.provider) return businessConfig?.durations || [];
-    
+
     try {
       // Find the specialist's actual availability for this date
       const dateStr = slot.date.toISOString().split('T')[0];
-      const availabilityResponse = await axios.get(
-        `/api/specialist-availability?business_type=${businessConfig?.id}&start_date=${dateStr}&end_date=${dateStr}&specialist_id=${slot.provider.id}`
-      );
-      
-      const availability = availabilityResponse.data.availability.find(av => 
-        av.specialist_id === slot.provider.id && 
-        av.date === dateStr && 
+      const availabilityData = await availabilityAPI.getForSpecialist(slot.provider.id, {
+        business_type: businessConfig?.id,
+        start_date: dateStr,
+        end_date: dateStr
+      });
+
+      const availability = availabilityData.availability.find(av =>
+        av.specialist_id === slot.provider.id &&
+        av.date === dateStr &&
         av.is_available
       );
-      
+
       if (!availability) return [];
       
       const slotTime = new Date(`1970-01-01T${slot.time}`);
@@ -357,24 +391,26 @@ function CalendarView({ user }) {
       
       // Get specialist availability for validation
       const dateStr = selectedSlot.date.toISOString().split('T')[0];
-      const availabilityResponse = await axios.get(
-        `/api/specialist-availability?business_type=${businessConfig?.id}&start_date=${dateStr}&end_date=${dateStr}&specialist_id=${selectedSlot.provider.id}`
-      );
-      
-      const availability = availabilityResponse.data.availability.find(av => 
-        av.specialist_id === selectedSlot.provider.id && 
-        av.date === dateStr && 
+      const availabilityData = await availabilityAPI.getForSpecialist(selectedSlot.provider.id, {
+        business_type: businessConfig?.id,
+        start_date: dateStr,
+        end_date: dateStr
+      });
+
+      const availability = availabilityData.availability.find(av =>
+        av.specialist_id === selectedSlot.provider.id &&
+        av.date === dateStr &&
         av.is_available &&
         selectedSlot.time >= av.start_time &&
         endTimeString <= av.end_time
       );
-      
+
       console.log('Booking validation:', {
         selectedDate: dateStr,
         selectedTime: selectedSlot.time,
         duration: newBooking.duration,
         endTime: endTimeString,
-        availabilities: availabilityResponse.data.availability,
+        availabilities: availabilityData.availability,
         foundAvailability: availability
       });
       
@@ -391,8 +427,8 @@ function CalendarView({ user }) {
       };
 
       console.log('Submitting booking data:', bookingData);
-      const response = await axios.post('/api/bookings', bookingData);
-      console.log('Booking response:', response.data);
+      const data = await bookingsAPI.create(bookingData);
+      console.log('Booking response:', data);
       
       // Refresh the day schedule
       await fetchDaySchedule(selectedDate);
@@ -480,8 +516,8 @@ function CalendarView({ user }) {
             // Get providers first to calculate grid columns - use only available providers
             const providers = availableProviders || [];
 
-            // If no providers have availability, show a message
-            if ((providers?.length || 0) === 0) {
+            // If no providers have availability AND no bookings, show a message
+            if ((providers?.length || 0) === 0 && dayBookings.length === 0) {
               return (
                 <div style={{
                   padding: '40px',
@@ -496,6 +532,13 @@ function CalendarView({ user }) {
                   <p>Go to <strong>Specialists</strong> tab and click <strong>📅 Schedule</strong> to set working hours.</p>
                 </div>
               );
+            }
+
+            // If we have bookings but no providers, the providers should already be derived in generateAvailableSlots
+            // This should not happen, but just in case, we skip rendering
+            if ((providers?.length || 0) === 0 && dayBookings.length > 0) {
+              console.log('Edge case: Have bookings but no providers derived yet');
+              return null;
             }
             
             const numColumns = providers.length + 1; // +1 for time column
@@ -957,7 +1000,7 @@ function CalendarView({ user }) {
                   onClick={async () => {
                     if (window.confirm('Are you sure you want to cancel this booking?')) {
                       try {
-                        await axios.delete(`/api/bookings/${selectedBooking.id}`);
+                        await bookingsAPI.delete(selectedBooking.id);
                         await fetchDaySchedule(selectedDate);
                         await fetchMonthBookings();
                         setShowManageBookingModal(false);
@@ -1032,18 +1075,18 @@ function CalendarView({ user }) {
                     notes: formData.get('notes')
                   };
                   
-                  await axios.put(`/api/bookings/${editingBooking.id}`, updateData);
-                  
+                  await bookingsAPI.update(editingBooking.id, updateData);
+
                   // Refresh calendar
                   await fetchDaySchedule(selectedDate);
                   await fetchMonthBookings();
-                  
+
                   // Close modal
                   setShowEditBookingModal(false);
                   setEditingBooking(null);
                 } catch (error) {
                   console.error('Error updating booking:', error);
-                  alert('Error updating booking: ' + (error.response?.data?.message || error.message));
+                  alert('Error updating booking: ' + (error.message || 'Unknown error'));
                 }
               }}>
                 <div style={{ marginBottom: '15px' }}>

@@ -598,6 +598,27 @@ export const localStorageUsers = {
 
 // Specialist Availability operations
 export const localStorageAvailability = {
+  getAll: async (businessType, startDate, endDate) => {
+    initializeData();
+    const availability = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALIST_AVAILABILITY) || '[]');
+    const specialists = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALISTS) || '[]');
+
+    // Filter by business type if provided
+    let relevantSpecialistIds = specialists.map(s => s.id);
+    if (businessType) {
+      relevantSpecialistIds = specialists
+        .filter(s => s.business_type === businessType)
+        .map(s => s.id);
+    }
+
+    return availability.filter(a => {
+      if (!relevantSpecialistIds.includes(a.specialist_id)) return false;
+      if (startDate && a.date < startDate) return false;
+      if (endDate && a.date > endDate) return false;
+      return true;
+    });
+  },
+
   getForSpecialist: async (specialistId, startDate, endDate) => {
     initializeData();
     const availability = JSON.parse(localStorage.getItem(STORAGE_KEYS.SPECIALIST_AVAILABILITY) || '[]');
