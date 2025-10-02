@@ -317,33 +317,218 @@ tr:hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 197, 253, 0.02) 100%);
 }
 
-/* Responsive */
+/* Responsive - Mobile First */
 @media (max-width: 768px) {
   .container {
-    padding: 0 15px;
+    padding: 0 10px;
+    max-width: 100%;
   }
-  
+
+  /* Navbar */
+  .navbar {
+    padding: 10px 0;
+  }
+
   .navbar .container {
     flex-direction: column;
-    gap: 15px;
+    gap: 10px;
+    padding: 0 10px;
   }
-  
+
+  .navbar h1 {
+    font-size: 1.2rem;
+    text-align: center;
+  }
+
   .nav-links {
     flex-wrap: wrap;
     justify-content: center;
+    gap: 8px;
+    width: 100%;
   }
-  
+
+  .nav-links a {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    width: auto;
+  }
+
+  /* Forms */
   .form-container {
-    margin: 20px auto;
-    padding: 30px 20px;
+    margin: 20px 10px;
+    padding: 20px 15px;
+    max-width: 100%;
   }
-  
+
+  .form-container h1 {
+    font-size: 1.5rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Cards */
+  .card {
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+  }
+
+  .card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+  }
+
+  .card h3 {
+    font-size: 1.1rem;
+  }
+
+  /* Tables - Make scrollable */
+  table {
+    font-size: 13px;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  thead, tbody, tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  th, td {
+    padding: 10px 6px;
+    font-size: 12px;
+  }
+
+  th {
+    font-size: 11px;
+  }
+
+  /* Table wrapper for horizontal scroll */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -10px;
+    padding: 0 10px;
+  }
+
+  /* Grid layouts - Stack on mobile */
+  .grid,
+  .stats-grid,
+  .dashboard-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  /* Modals */
+  .modal {
+    padding: 10px !important;
+    max-width: 100% !important;
+  }
+
+  .modal-content {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 10px auto !important;
+    padding: 15px !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* Status badges */
+  .status-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  /* Time slots */
+  .time-slots {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .time-slot {
+    padding: 12px 8px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* Tablet */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container {
+    padding: 0 20px;
+    max-width: 100%;
+  }
+
+  .navbar h1 {
+    font-size: 1.3rem;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
   table {
     font-size: 14px;
   }
-  
+
   th, td {
-    padding: 8px;
+    padding: 10px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+
+  .navbar h1 {
+    font-size: 1rem;
+  }
+
+  .nav-links a {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .card h2 {
+    font-size: 1.1rem;
+  }
+
+  .form-container {
+    padding: 15px 10px;
+  }
+
+  th, td {
+    padding: 8px 4px;
+    font-size: 11px;
+  }
+
+  .time-slots {
+    grid-template-columns: 1fr !important;
   }
 }
 

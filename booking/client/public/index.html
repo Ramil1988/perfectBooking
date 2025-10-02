@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta name="theme-color" content="#667eea" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
         name="description"
         content="Online booking platform for small businesses"
@@ -319,14 +322,80 @@
             .container {
                 padding: 0 10px;
             }
-            
-            .navbar .nav-links {
+
+            .navbar {
+                padding: 10px 0;
+            }
+
+            .navbar .container {
                 flex-direction: column;
                 gap: 10px;
             }
-            
+
+            .navbar h1 {
+                font-size: 1.2rem;
+            }
+
+            .navbar .nav-links {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: center;
+                width: 100%;
+            }
+
+            .navbar .nav-links a,
+            .navbar .nav-links .btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .card {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
             .time-slots {
-                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .time-slot {
+                padding: 12px 8px;
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 6px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar h1 {
+                font-size: 1rem;
+            }
+
+            .time-slots {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 12px;
+            }
+
+            th, td {
+                padding: 6px 4px;
+                font-size: 10px;
             }
         }
     </style>
