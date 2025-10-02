@@ -1,6 +1,6 @@
 [build]
   # Build command for React app with localStorage mode enabled
-  command = "cd booking/client && REACT_APP_USE_LOCAL_STORAGE=true npm run build"
+  command = "cd booking/client && npm install && REACT_APP_USE_LOCAL_STORAGE=true npm run build"
 
   # Directory containing the built files
   publish = "booking/client/build"
