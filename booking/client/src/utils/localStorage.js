@@ -13,7 +13,9 @@ const STORAGE_KEYS = {
   USER_BUSINESS_ACCESS: 'booking_user_business_access',
   CURRENT_USER: 'booking_current_user',
   AUTH_TOKEN: 'token',
-  NEXT_ID: 'booking_next_id'
+  NEXT_ID: 'booking_next_id',
+  SUBSCRIPTIONS: 'booking_subscriptions',
+  PAYMENTS: 'booking_payments'
 };
 
 // Initialize default data
@@ -78,7 +80,15 @@ const initializeData = () => {
   }
 
   if (!localStorage.getItem(STORAGE_KEYS.NEXT_ID)) {
-    localStorage.setItem(STORAGE_KEYS.NEXT_ID, JSON.stringify({ users: 3, bookings: 1, specialists: 5, services: 5 }));
+    localStorage.setItem(STORAGE_KEYS.NEXT_ID, JSON.stringify({ users: 3, bookings: 1, specialists: 5, services: 5, subscriptions: 1, payments: 1 }));
+  }
+
+  if (!localStorage.getItem(STORAGE_KEYS.SUBSCRIPTIONS)) {
+    localStorage.setItem(STORAGE_KEYS.SUBSCRIPTIONS, JSON.stringify([]));
+  }
+
+  if (!localStorage.getItem(STORAGE_KEYS.PAYMENTS)) {
+    localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
   }
 };
 
@@ -846,6 +856,80 @@ export const localStoragePlatformPricing = {
         description: 'Professional appointment scheduling for beauty salons'
       }
     ];
+  }
+};
+
+// Payments operations
+export const localStoragePayments = {
+  getSubscriptions: async (userId) => {
+    initializeData();
+    const subscriptions = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBSCRIPTIONS) || '[]');
+    return subscriptions.filter(s => s.user_id === userId);
+  },
+
+  getPayments: async (userId) => {
+    initializeData();
+    const payments = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENTS) || '[]');
+    return payments.filter(p => p.user_id === userId);
+  },
+
+  createSubscription: async (subscriptionData) => {
+    initializeData();
+    const subscriptions = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBSCRIPTIONS) || '[]');
+
+    const newSubscription = {
+      id: getNextId('subscriptions'),
+      user_id: subscriptionData.user_id,
+      business_type: subscriptionData.business_type,
+      stripe_subscription_id: `sub_demo_${Date.now()}`,
+      status: 'active',
+      amount: subscriptionData.amount || 29.99,
+      currency: 'usd',
+      current_period_start: new Date().toISOString(),
+      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date().toISOString()
+    };
+
+    subscriptions.push(newSubscription);
+    localStorage.setItem(STORAGE_KEYS.SUBSCRIPTIONS, JSON.stringify(subscriptions));
+    return newSubscription;
+  },
+
+  cancelSubscription: async (subscriptionId) => {
+    initializeData();
+    const subscriptions = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBSCRIPTIONS) || '[]');
+    const subscription = subscriptions.find(s => s.id === parseInt(subscriptionId));
+
+    if (subscription) {
+      subscription.status = 'canceled';
+      subscription.cancel_at_period_end = true;
+      localStorage.setItem(STORAGE_KEYS.SUBSCRIPTIONS, JSON.stringify(subscriptions));
+    }
+
+    return subscription;
+  },
+
+  createPayment: async (paymentData) => {
+    initializeData();
+    const payments = JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENTS) || '[]');
+
+    const newPayment = {
+      id: getNextId('payments'),
+      user_id: paymentData.user_id,
+      booking_id: paymentData.booking_id || null,
+      stripe_payment_intent_id: `pi_demo_${Date.now()}`,
+      amount: paymentData.amount,
+      currency: paymentData.currency || 'usd',
+      status: 'succeeded',
+      payment_type: paymentData.payment_type || 'booking',
+      description: paymentData.description || null,
+      service_name: paymentData.service_name || null,
+      created_at: new Date().toISOString()
+    };
+
+    payments.push(newPayment);
+    localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+    return newPayment;
   }
 };
 

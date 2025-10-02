@@ -22,18 +22,22 @@ A modern, flexible booking platform designed for small businesses across multipl
 ### 👨‍💼 For Business Admins
 - Comprehensive dashboard overview
 - Multi-business type support (massage, dental, beauty)
-- Specialist and service management
+- Specialist and service management (CRUD operations)
 - Booking creation, updates, and cancellations
-- Customer management
-- Calendar view with filtering
+- Customer management (create, update, delete users)
+- Calendar view with intelligent booking display
 - Business hours configuration
+- Specialist availability management
+- Payment dashboard with subscription tracking
 
 ### 🔐 For Platform Super Admin
 - Platform-wide management
-- Business access control
-- Subscription management
-- Payment integration (Stripe)
+- Business access control and assignment
+- Subscription management with localStorage support
+- Payment integration (Stripe) with demo mode
 - Multi-tenant support
+- Platform pricing configuration
+- User and business analytics
 
 ## 🚀 Quick Start
 
@@ -292,10 +296,12 @@ Perfect for testing, demos, or static hosting without a backend!
 
 ### How It Works
 
-1. **Data Storage**: All data (users, bookings, services) stored in browser's localStorage
+1. **Data Storage**: All data (users, bookings, services, payments, subscriptions) stored in browser's localStorage
 2. **No Backend**: Runs entirely in the browser
 3. **Data Persistence**: Survives page refreshes
 4. **Pre-loaded Data**: Comes with demo users, specialists, and services
+5. **API Wrapper Pattern**: All components use unified API wrappers that automatically route to localStorage or real API
+6. **Defensive Programming**: Built with optional chaining and default values to prevent runtime errors
 
 ### Enabling LocalStorage Mode
 
@@ -316,11 +322,16 @@ window.location.reload();
 
 ✅ User registration and login
 ✅ Creating, viewing, updating, and deleting bookings
-✅ Specialist selection
-✅ Service browsing
+✅ Specialist selection and availability management
+✅ Service browsing and CRUD operations
 ✅ Available time slot checking
-✅ Role-based access control
-✅ Business type filtering
+✅ Role-based access control (Customer, Admin, SuperAdmin)
+✅ Business type filtering (massage, dental, beauty)
+✅ User management (create, update, delete)
+✅ Calendar view with bookings display
+✅ Payment dashboard with subscription tracking
+✅ Platform pricing configuration (SuperAdmin)
+✅ Business access control (SuperAdmin)
 
 ### Limitations
 

@@ -9,7 +9,8 @@ import {
   localStorageAvailability,
   localStorageSuperAdmin,
   localStorageUserAccess,
-  localStoragePlatformPricing
+  localStoragePlatformPricing,
+  localStoragePayments
 } from './localStorage';
 
 /**
@@ -369,6 +370,54 @@ export const platformPricingAPI = {
       return { pricing };
     }
     const response = await axios.get('/api/super-admin/platform-pricing');
+    return response.data;
+  }
+};
+
+// Payments API
+export const paymentsAPI = {
+  getSubscriptions: async (userId) => {
+    if (shouldUseLocalStorage()) {
+      const subscriptions = await localStoragePayments.getSubscriptions(userId);
+      return { subscriptions };
+    }
+    const response = await axios.get('/api/payments/subscriptions');
+    return response.data;
+  },
+
+  getPayments: async (userId) => {
+    if (shouldUseLocalStorage()) {
+      const payments = await localStoragePayments.getPayments(userId);
+      return { payments };
+    }
+    const response = await axios.get('/api/payments/payments');
+    return response.data;
+  },
+
+  createSubscription: async (subscriptionData) => {
+    if (shouldUseLocalStorage()) {
+      const subscription = await localStoragePayments.createSubscription(subscriptionData);
+      return { subscription };
+    }
+    const response = await axios.post('/api/payments/subscribe', subscriptionData);
+    return response.data;
+  },
+
+  cancelSubscription: async (subscriptionId) => {
+    if (shouldUseLocalStorage()) {
+      const subscription = await localStoragePayments.cancelSubscription(subscriptionId);
+      return { subscription };
+    }
+    const response = await axios.post(`/api/payments/cancel-subscription/${subscriptionId}`);
+    return response.data;
+  },
+
+  createPayment: async (paymentData) => {
+    if (shouldUseLocalStorage()) {
+      const payment = await localStoragePayments.createPayment(paymentData);
+      return { payment };
+    }
+    const response = await axios.post('/api/payments/create-payment', paymentData);
     return response.data;
   }
 };

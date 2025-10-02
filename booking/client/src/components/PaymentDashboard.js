@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { paymentsAPI } from '../utils/api';
 
 function PaymentDashboard({ user }) {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -7,20 +7,24 @@ function PaymentDashboard({ user }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchPaymentData();
-  }, []);
+    if (user?.id) {
+      fetchPaymentData();
+    }
+  }, [user?.id]);
 
   const fetchPaymentData = async () => {
     try {
       const [subscriptionsRes, paymentsRes] = await Promise.all([
-        axios.get('/api/payments/subscriptions'),
-        axios.get('/api/payments/payments')
+        paymentsAPI.getSubscriptions(user?.id),
+        paymentsAPI.getPayments(user?.id)
       ]);
-      
-      setSubscriptions(subscriptionsRes.data.subscriptions);
-      setPayments(paymentsRes.data.payments);
+
+      setSubscriptions(subscriptionsRes?.subscriptions || []);
+      setPayments(paymentsRes?.payments || []);
     } catch (error) {
       console.error('Error fetching payment data:', error);
+      setSubscriptions([]);
+      setPayments([]);
     } finally {
       setLoading(false);
     }
@@ -29,7 +33,7 @@ function PaymentDashboard({ user }) {
   const handleCancelSubscription = async (subscriptionId) => {
     if (window.confirm('Are you sure you want to cancel this subscription? It will remain active until the end of the current billing period.')) {
       try {
-        await axios.post(`/api/payments/cancel-subscription/${subscriptionId}`);
+        await paymentsAPI.cancelSubscription(subscriptionId);
         alert('Subscription will be canceled at the end of the current period');
         fetchPaymentData();
       } catch (error) {
@@ -61,7 +65,7 @@ function PaymentDashboard({ user }) {
       {/* Active Subscriptions */}
       <div className="card" style={{ marginBottom: '30px' }}>
         <h2>Active Subscriptions</h2>
-        {subscriptions.length === 0 ? (
+        {(subscriptions?.length || 0) === 0 ? (
           <p>You don't have any active subscriptions.</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -76,7 +80,7 @@ function PaymentDashboard({ user }) {
                 </tr>
               </thead>
               <tbody>
-                {subscriptions.map((subscription) => (
+                {(subscriptions || []).map((subscription) => (
                   <tr key={subscription.id}>
                     <td>
                       <strong>
@@ -118,7 +122,7 @@ function PaymentDashboard({ user }) {
       {/* Payment History */}
       <div className="card">
         <h2>Payment History</h2>
-        {payments.length === 0 ? (
+        {(payments?.length || 0) === 0 ? (
           <p>No payment history found.</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -133,7 +137,7 @@ function PaymentDashboard({ user }) {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => (
+                {(payments || []).map((payment) => (
                   <tr key={payment.id}>
                     <td>{formatDate(payment.created_at)}</td>
                     <td>
@@ -176,7 +180,7 @@ function PaymentDashboard({ user }) {
           </div>
           <div>
             <h4>📧 Billing Contact</h4>
-            <p>Invoices are sent to: <strong>{user.email}</strong></p>
+            <p>Invoices are sent to: <strong>{user?.email || 'N/A'}</strong></p>
           </div>
           <div>
             <h4>🔒 Security</h4>
