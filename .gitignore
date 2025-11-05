@@ -1,0 +1,11 @@
+# Ignore other projects on Desktop
+web and marketing agency/
+developer-portfolio-template/
+Projects/
+Docs/
+
+# OS files
+.DS_Store
+*.jpeg
+*.jpg
+*.png
